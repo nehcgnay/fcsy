@@ -1,0 +1,63 @@
+====
+fcsy
+====
+
+
+.. image:: https://img.shields.io/pypi/v/fcsy.svg
+        :target: https://pypi.python.org/pypi/fcsy
+
+.. image:: https://img.shields.io/travis/nehcgnay/fcsy.svg
+        :target: https://travis-ci.org/nehcgnay/fcsy
+
+
+
+Fcsy processes fcs files.
+
+
+* Free software: MIT license
+
+Installation
+------------
+.. code:: python
+
+    pip install fcsy
+
+
+Usage
+-----
+
+Read a fcs file to pandas DataFrame.
+
+.. code:: python
+
+    import fcsy
+
+    df = fcsy.read_fcs('input_file')
+
+Write a data frame to fcs
+
+.. code:: python
+
+    fcsy.write_fcs(df, 'output_file')
+
+
+Read a fcs file with "long name"
+
+.. code:: python
+
+    import fcsy
+
+    df = fcsy.read_fcs('input_file', name_type='long')
+
+    # or only read the names
+
+    long_names = fcsy.read_fcs_names('input_file', name_type='long')
+
+
+Credits
+-------
+
+This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypackage`_ project template.
+
+.. _Cookiecutter: https://github.com/audreyr/cookiecutter
+.. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
