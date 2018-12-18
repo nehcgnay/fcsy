@@ -11,7 +11,10 @@ with open('README.rst') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-requirements = [ ]
+requirements = [
+    'numpy==1.15.4',
+    'pandas==0.23.4'
+]
 
 setup_requirements = ['pytest-runner', ]
 
