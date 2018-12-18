@@ -11,7 +11,7 @@ fcsy
 
 
 
-Fcsy processes fcs files.
+A package for processing FCS files.
 
 
 * Free software: MIT license
