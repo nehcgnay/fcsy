@@ -9,22 +9,21 @@ from pandas import DataFrame as pdDataFrame
 
 def read_fcs_names(f, name_type='short'):
     reader = FcsReader()
-    map = {'short': reader.header, 'long': reader.long_header}
-    return map[name_type](f)
+    mapping = {'short': reader.header, 'long': reader.long_header}
+    return mapping[name_type](f)
 
 
-def read_fcs(path, col_type='short'):
+def read_fcs(f, name_type='short'):
     reader = FcsReader()
-    if col_type == 'short':
-        columns = reader.header(path)
-    else:
-        columns = reader.long_header(path)
-    data = reader.data(path)
+    data = reader.data(f)
+    columns = read_fcs_names(f, name_type=name_type)
+
     return pdDataFrame(data, columns=columns)
 
 
-def write_fcs(path, df, long_names=None):
+def write_fcs(df, path, long_names=None):
     write = FcsWriter()
+    long_names = df.columns if long_names == None else long_names
     write.export(path, df.loc[:].values,
                  long_names, df.columns)
 

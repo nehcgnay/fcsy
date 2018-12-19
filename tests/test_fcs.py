@@ -2,11 +2,12 @@
 # -*- coding: utf-8 -*-
 
 import os
+import pytest
 from tempfile import mkdtemp
 from shutil import rmtree
 import numpy as np
+from mock import patch
 import pandas as pd
-from pandas.util.testing import assert_frame_equal
 from fcsy.fcs import *
 
 
@@ -17,6 +18,77 @@ class TmpDir:
 
     def __exit__(self, type, value, traceback):
         rmtree(self._tmp_dir_path)
+
+
+@patch('fcsy.fcs.FcsWriter')
+def test_write_fcs(MockWriter):
+    writer = MockWriter()
+    data = np.array([[1,2],[3,4]])
+    short_names = list('ab')
+    df = pd.DataFrame(data, columns=short_names)
+    fout= 'test.fcs'
+    write_fcs(df, fout)
+
+    called_args = writer.export.call_args[0]
+
+    assert called_args[0] == fout
+    np.testing.assert_array_equal(called_args[1], data)
+    np.testing.assert_array_equal(called_args[2], short_names)
+    np.testing.assert_array_equal(called_args[3], short_names)
+
+    long_names = list('AB')
+    write_fcs(df, fout, long_names=long_names)
+    called_args = writer.export.call_args[0]
+    assert called_args[0] == fout
+    np.testing.assert_array_equal(called_args[1], data)
+    np.testing.assert_array_equal(called_args[2], long_names)
+    np.testing.assert_array_equal(called_args[3], short_names)
+
+
+@patch('fcsy.fcs.FcsReader')
+def test_read_fcs_names(MockReader):
+    reader = MockReader()
+    short_names = list('ab')
+    long_names = list('AB')
+    reader.long_header.return_value = long_names
+    reader.header.return_value = short_names
+
+    names = read_fcs_names('f', 'short')
+    np.testing.assert_array_equal(names, short_names)
+
+    names = read_fcs_names('f', 'long')
+    np.testing.assert_array_equal(names, long_names)
+
+    with pytest.raises(KeyError) as err:
+        read_fcs_names('f', 'XX')
+
+
+@patch('fcsy.fcs.read_fcs_names')
+@patch('fcsy.fcs.FcsReader')
+def test_read_fcs(MockReader, mock_read_fcs_names):
+    reader = MockReader()
+    data = np.array([[1,2],[3,4]])
+    short_names = list('ab')
+    long_names = list('AB')
+    reader.data.return_value = data
+    mock_read_fcs_names.return_value = short_names
+
+    df = read_fcs('f', 'short')
+
+    reader.data.assert_called_with('f')
+    mock_read_fcs_names.assert_called_with('f', name_type='short')
+    np.testing.assert_array_equal(df.values, data)
+    np.testing.assert_array_equal(df.columns, short_names)
+
+    mock_read_fcs_names.return_value = long_names
+    df = read_fcs('f', 'long')
+
+    reader.data.assert_called_with('f')
+    mock_read_fcs_names.assert_called_with('f', name_type='long')
+    np.testing.assert_array_equal(df.values, data)
+    np.testing.assert_array_equal(df.columns, long_names)
+
+
 
 
 class TestFCS:
