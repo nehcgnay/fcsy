@@ -30,33 +30,36 @@ Read a fcs file to pandas DataFrame.
 
 .. code:: python
 
-    import fcsy
+    from fcsy.fcs import read_fcs
 
-    df = fcsy.read_fcs('input_file')
+    df = read_fcs('input_file')
 
 Read a fcs file with "long name"
 
 .. code:: python
 
-    df = fcsy.read_fcs('input_file', name_type='long')
+    df = read_fcs('input_file', name_type='long')
 
     # or only read the names
+    from fcsy.fcs import read_fcs_names
 
-    long_names = fcsy.read_fcs_names('input_file', name_type='long')
+    long_names = read_fcs_names('input_file', name_type='long')
 
 
 Write a data frame to fcs. df.columns is written to both short and long names of the fcs.
 
 .. code:: python
 
-    fcsy.write_fcs(df, 'output_file')
+    from fcsy.fcs import write_fcs
+
+    write_fcs(df, 'output_file')
 
 
 Write to fcs with "long name". df.columns and long_names are written to short and long names of the fcs.
 
 .. code:: python
 
-    fcsy.write_fcs(df, 'output_file', long_names=['a','b','c'])
+    write_fcs(df, 'output_file', long_names=['a','b','c'])
 
 
 
