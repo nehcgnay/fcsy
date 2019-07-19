@@ -7,8 +7,9 @@ def zscore(df, axis=0, ddof=0):
     mns = a.mean(axis=axis)
     sstd = a.std(axis=axis, ddof=ddof)
     if axis and mns.ndim < a.ndim:
-        x = ((a - np.expand_dims(mns, axis=axis)) /
-                np.expand_dims(sstd, axis=axis))
+        f = (a - np.expand_dims(mns, axis=axis))
+        t = np.expand_dims(sstd, axis=axis)
+        x = f/t
     else:
         x = (a - mns) / sstd
     return pd.DataFrame(x, columns=df.columns, index=df.index)
@@ -33,8 +34,3 @@ def rm_outliers(df, threshold=0.05, **kwargs):
 
 def randomize(df):
     return df.applymap(lambda x: np.random.normal(x, 0.3))
-
-
-
-
-
