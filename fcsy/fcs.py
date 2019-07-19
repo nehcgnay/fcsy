@@ -23,7 +23,7 @@ def read_fcs(f, name_type='short'):
 
 def write_fcs(df, path, long_names=None):
     write = FcsWriter()
-    long_names = df.columns if long_names == None else long_names
+    long_names = df.columns if long_names is None else long_names
     write.export(path, df.loc[:].values,
                  long_names, df.columns)
 
@@ -57,7 +57,8 @@ class FcsReader:
 
     def data(self, filename):
         fcs_header = self._analyze_header(filename)
-        fcs_vars, delimiter = self._analyze_text(filename, fcs_header.text_start,
+        fcs_vars, delimiter = self._analyze_text(filename,
+                                                 fcs_header.text_start,
                                                  fcs_header.text_end)
         data_start = fcs_header.data_start
         data_end = fcs_header.data_end
@@ -204,7 +205,7 @@ class FcsWriter:
         self.write_bytes(fh, 'FCS3.1')
         self.write_bytes(fh, ' ' * 53)
 
-        ## WRITE TEXT Segment
+        # WRITE TEXT Segment
         text_start = 256  # arbitrarilly start at byte 256.
         delim = '/'  # use / as our delimiter.
         # write spaces untill the start of the txt segment
@@ -281,6 +282,3 @@ class FcsWriter:
         self.write_bytes(fh, str(0))
 
         fh.close()
-
-
-
