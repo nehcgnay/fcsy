@@ -24,6 +24,6 @@ deploy:
     secure: sCvgRJ2AFQUINuo96/OhdeDAVN7lGYBEzs45xgYa3QKc1wiRW1uXaK66mNzT99tKddTcqJ0aOcHUJrqWJRKNhi7lEYAFiDHfXAWRJgNWwDqBJQUt1hM1uw0mDuk4pb8Iq1dhcYsfJGyoIOo31YuG8DlBU4J8ykbGj7jRPPE3MDPIn+RMj+Tk1064T+mwm+IDEehTkoDAYQm+S1Nzqe+7096eAKTPUJJP1RtbAy/9OCmb/+HsuYkjoRdhCJhxVnyGd6efSspHpquy80x8TglsOQ8/rEHxxNpVyfmWNJiJ6LpRA8kwvt/7s2ZfjnTvAQ9ZDdaO4BwfPLSgsTgEyX4REhJLYaz99SitfeoCSB+Tolu7Gndc9S5I6V7ItWhtvUXJfWGniZVBYr2qLN2nN+v9qohxqvkXwM0garjyrmx0MKMdvai18yyIlE7X1uDr0HzcjMTA5CsZ2WeXCSdXAQ/uSi6czIrssnK9F92WONnU5ZpabhIZ065k+5XKT/jjD+TCJSkYdilhkgxjYGo+AQG+XTPQkUIAUSAymqovyE4RWp2q1lgsNEWQTUQdlMeYam9yx4fA3z4PhbSuqTw7uD/mgdZ0e/GPMqfOAqCAOtp10FJAWCPRph4y4ksZ5rcz77pOljBeh3lhiEVgLTaKXWyMfJwPZ4u1TWM7wcPueXsldLE=
   skip_cleanup: true
   on:
-    tags: true
+    branch: master
     repo: nehcgnay/fcsy
     python: 3.6
