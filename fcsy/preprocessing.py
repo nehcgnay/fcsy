@@ -32,5 +32,5 @@ def rm_outliers(df, threshold=0.05, **kwargs):
     return df
 
 
-def randomize(df):
-    return df.applymap(lambda x: np.random.normal(x, 0.3))
+def randomize(df, factor=0.5):
+    return df.applymap(lambda x: np.random.normal(x, factor))
