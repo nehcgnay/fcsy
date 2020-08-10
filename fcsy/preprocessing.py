@@ -7,9 +7,9 @@ def zscore(df, axis=0, ddof=0):
     mns = a.mean(axis=axis)
     sstd = a.std(axis=axis, ddof=ddof)
     if axis and mns.ndim < a.ndim:
-        f = (a - np.expand_dims(mns, axis=axis))
+        f = a - np.expand_dims(mns, axis=axis)
         t = np.expand_dims(sstd, axis=axis)
-        x = f/t
+        x = f / t
     else:
         x = (a - mns) / sstd
     return pd.DataFrame(x, columns=df.columns, index=df.index)

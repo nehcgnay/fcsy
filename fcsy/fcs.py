@@ -259,7 +259,7 @@ class FcsWriter:
 
         self.write_bytes(fh, text_segment)
         self.write_bytes(fh, ' ' * (data_start - fh.tell()))
-        self.write_bytes(fh, pnts.astype('<f').tostring())
+        self.write_bytes(fh, pnts.astype('<f').tobytes())
 
         fh.seek(header_text_start[0])
         self.write_bytes(fh, str(text_start))

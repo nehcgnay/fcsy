@@ -8,7 +8,7 @@ from shutil import rmtree
 import numpy as np
 from mock import patch
 import pandas as pd
-from fcsy.fcs import *
+from fcsy import *
 
 
 class TmpDir:
