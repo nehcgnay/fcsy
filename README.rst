@@ -6,8 +6,10 @@ fcsy
 .. image:: https://img.shields.io/pypi/v/fcsy.svg
         :target: https://pypi.python.org/pypi/fcsy
 
-.. image:: https://img.shields.io/travis/nehcgnay/fcsy.svg
-        :target: https://travis-ci.org/nehcgnay/fcsy
+.. image:: https://github.com/nehcgnay/fcsy/workflows/Python%20package/badge.svg
+
+.. image:: https://github.com/nehcgnay/fcsy/workflows/Upload%20Python%20Package/badge.svg
+
 
 
 
