@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from pandas.testing import assert_frame_equal, assert_index_equal
-from fcsy import *
+from fcsy.preprocessing import randomize, zscore, arcsinh
 
 
 class TestTransform:

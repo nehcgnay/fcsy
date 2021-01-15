@@ -1,0 +1,7 @@
+* text=auto
+*.* text eol=lf
+
+# (binary is a macro for -text -diff)
+*.pyc binary
+*.pdf binary
+*.fcs binary

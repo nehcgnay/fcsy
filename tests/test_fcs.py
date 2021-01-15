@@ -8,6 +8,7 @@ from shutil import rmtree
 import numpy as np
 from mock import patch
 import pandas as pd
+from pandas.testing import assert_frame_equal
 from fcsy import *
 
 
@@ -20,13 +21,13 @@ class TmpDir:
         rmtree(self._tmp_dir_path)
 
 
-@patch('fcsy.fcs.FcsWriter')
+@patch("fcsy.fcs.FcsWriter")
 def test_write_fcs(MockWriter):
     writer = MockWriter()
-    data = np.array([[1,2],[3,4]])
-    short_names = list('ab')
+    data = np.array([[1, 2], [3, 4]])
+    short_names = list("ab")
     df = pd.DataFrame(data, columns=short_names)
-    fout= 'test.fcs'
+    fout = "test.fcs"
     write_fcs(df, fout)
 
     called_args = writer.export.call_args[0]
@@ -36,7 +37,7 @@ def test_write_fcs(MockWriter):
     np.testing.assert_array_equal(called_args[2], short_names)
     np.testing.assert_array_equal(called_args[3], short_names)
 
-    long_names = list('AB')
+    long_names = list("AB")
     write_fcs(df, fout, long_names=long_names)
     called_args = writer.export.call_args[0]
     assert called_args[0] == fout
@@ -45,58 +46,147 @@ def test_write_fcs(MockWriter):
     np.testing.assert_array_equal(called_args[3], short_names)
 
 
-@patch('fcsy.fcs.FcsReader')
+@patch("fcsy.fcs.FcsReader")
 def test_read_fcs_names(MockReader):
-    reader = MockReader()
-    short_names = list('ab')
-    long_names = list('AB')
-    reader.long_header.return_value = long_names
-    reader.header.return_value = short_names
+    name = "test.fcs"
+    data = np.array(
+        [[1.1, 2.1, 3.1, 4.0011], [11.1, 12.1, 13.1, 14.0011]], dtype=np.float32
+    )
+    channels = ["a", "b", "c", "d"]
+    long_channels = ["A", "B", "C", "D"]
+    fcs_writer = FcsWriter()
 
-    names = read_fcs_names('f', 'short')
-    np.testing.assert_array_equal(names, short_names)
+    with TmpDir() as dir_:
+        filename = os.path.join(dir_, name)
+        fcs_writer.export(
+            filename, data, long_channels, channels
+        )
 
-    names = read_fcs_names('f', 'long')
-    np.testing.assert_array_equal(names, long_names)
+        names = read_fcs_names(filename, "short")
+        np.testing.assert_array_equal(names, channels)
 
-    with pytest.raises(KeyError) as err:
-        read_fcs_names('f', 'XX')
+        names = read_fcs_names(filename, "long")
+        np.testing.assert_array_equal(names, long_channels)
+
+        with pytest.raises(KeyError) as err:
+            read_fcs_names(filename, "XX")
 
 
-@patch('fcsy.fcs.read_fcs_names')
-@patch('fcsy.fcs.FcsReader')
+@patch("fcsy.fcs.read_fcs_names")
+@patch("fcsy.fcs.FcsReader")
 def test_read_fcs(MockReader, mock_read_fcs_names):
     reader = MockReader()
-    data = np.array([[1,2],[3,4]])
-    short_names = list('ab')
-    long_names = list('AB')
+    data = np.array([[1, 2], [3, 4]])
+    short_names = list("ab")
+    long_names = list("AB")
     reader.data.return_value = data
     mock_read_fcs_names.return_value = short_names
 
-    df = read_fcs('f', 'short')
+    df = read_fcs("f", "short")
 
-    reader.data.assert_called_with('f')
-    mock_read_fcs_names.assert_called_with('f', name_type='short')
+    reader.data.assert_called_with("f")
+    mock_read_fcs_names.assert_called_with("f", name_type="short")
     np.testing.assert_array_equal(df.values, data)
     np.testing.assert_array_equal(df.columns, short_names)
 
     mock_read_fcs_names.return_value = long_names
-    df = read_fcs('f', 'long')
+    df = read_fcs("f", "long")
 
-    reader.data.assert_called_with('f')
-    mock_read_fcs_names.assert_called_with('f', name_type='long')
+    reader.data.assert_called_with("f")
+    mock_read_fcs_names.assert_called_with("f", name_type="long")
     np.testing.assert_array_equal(df.values, data)
     np.testing.assert_array_equal(df.columns, long_names)
 
 
-
-
 class TestFCS:
     def setup_method(self):
-        self.name = 'test.fcs'
-        self.data = np.array([[1.1, 2.1, 3.1, 4.0011],
-                              [11.1, 12.1, 13.1, 14.0011]], dtype=np.float32)
-        self.channels = ['a', 'b', 'c', 'd']
+        self.name = "test.fcs"
+        self.data = np.array(
+            [[1.1, 2.1, 3.1, 4.0011], [11.1, 12.1, 13.1, 14.0011]], dtype=np.float32
+        )
+        self.channels = ["a", "b", "c", "d"]
+        self.long_channels = ["A", "B", "C", "D"]
+        self.fcs_writer = FcsWriter()
+
+    def test_header(self):
+        with TmpDir() as dir_:
+            filename = os.path.join(dir_, self.name)
+            self.fcs_writer.export(filename, self.data, self.channels)
+            fcs = Fcs(filename)
+            assert fcs.short_channels == self.channels
+
+    def test_count(self):
+        with TmpDir() as dir_:
+            filename = os.path.join(dir_, self.name)
+            self.fcs_writer.export(filename, self.data, self.channels)
+            fcs = Fcs(filename)
+            assert fcs.count == len(self.data)
+
+    def test_data(self):
+        with TmpDir() as dir_:
+            filename = os.path.join(dir_, self.name)
+            self.fcs_writer.export(filename, self.data, self.channels)
+            fcs = Fcs(filename)
+            assert np.array_equal(fcs.read_data(), self.data)
+
+        chn = ["a", "b"]
+        data = np.array([[1, 2], [11, 12]])
+        with TmpDir() as dir_:
+            filename = os.path.join(dir_, self.name)
+            self.fcs_writer.export(filename, data, chn)
+            fcs = Fcs(filename)
+            assert np.array_equal(fcs.read_data(), data)
+
+    def test_dataframe(self):
+        with TmpDir() as dir_:
+            filename = os.path.join(dir_, self.name)
+            self.fcs_writer.export(
+                filename, self.data, self.long_channels, self.channels
+            )
+            fcs = Fcs(filename)
+            df = fcs.to_dataframe()
+            np.testing.assert_array_equal(df.values, self.data)
+            np.testing.assert_array_equal(
+                df.columns,
+                pd.MultiIndex.from_tuples(
+                    zip(self.channels, self.long_channels), names=["short", "long"]
+                ),
+            )
+
+    def test_from_fcs(self):
+        with TmpDir() as dir_:
+            filename = os.path.join(dir_, self.name)
+            self.fcs_writer.export(
+                filename, self.data, self.long_channels, self.channels
+            )
+            df = DataFrame.from_fcs(filename, 'multi')
+            np.testing.assert_array_equal(df.values, self.data)
+            np.testing.assert_array_equal(
+                df.columns,
+                pd.MultiIndex.from_tuples(
+                    zip(self.channels, self.long_channels), names=["short", "long"]
+                ),
+            )
+
+    def test_to_fcs(self):
+        df = DataFrame(self.data, columns=self.channels)
+        with TmpDir() as dir_:
+            filename = os.path.join(dir_, 'export.fcs')
+            df.to_fcs(filename)
+
+            fcs = Fcs(filename)
+            df2 = fcs.to_dataframe(channel_type='short')
+
+        assert_frame_equal(df, df2)
+
+
+class TestFCSReader:
+    def setup_method(self):
+        self.name = "test.fcs"
+        self.data = np.array(
+            [[1.1, 2.1, 3.1, 4.0011], [11.1, 12.1, 13.1, 14.0011]], dtype=np.float32
+        )
+        self.channels = ["a", "b", "c", "d"]
         self.fcs_writer = FcsWriter()
         self.fcs_reader = FcsReader()
 
@@ -121,7 +211,7 @@ class TestFCS:
             data = self.fcs_reader.data(filename)
             assert np.array_equal(data, self.data)
 
-        chn = ['a', 'b']
+        chn = ["a", "b"]
         data = np.array([[1, 2], [11, 12]])
         with TmpDir() as dir_:
             filename = os.path.join(dir_, self.name)
@@ -132,11 +222,15 @@ class TestFCS:
 
 class TestFcsWriter:
     def setup_method(self):
-        self.name = 'test.fcs'
-        self.data = np.array([[1.1, 2.1, 3.1, 4.0011],
-                              [11.1, 12.1, 13.1, 14.0011],
-                              [21.1, 22.1, 23.1, 24.0011]])
-        self.channels = ['a', 'b', 'c', 'd']
+        self.name = "test.fcs"
+        self.data = np.array(
+            [
+                [1.1, 2.1, 3.1, 4.0011],
+                [11.1, 12.1, 13.1, 14.0011],
+                [21.1, 22.1, 23.1, 24.0011],
+            ]
+        )
+        self.channels = ["a", "b", "c", "d"]
         self.fcs_writer = FcsWriter()
         self.fcs_reader = FcsReader()
 
@@ -159,76 +253,21 @@ class TestFcsWriter:
 
     def test_build_headsg(self):
         headsg = self.fcs_writer.build_headsg()
-        assert headsg[:6].decode('ASCII') == 'FCS3.1'
-        assert headsg[6:].decode('UTF-8') == ' ' * 4
+        assert headsg[:6].decode("ASCII") == "FCS3.1"
+        assert headsg[6:].decode("UTF-8") == " " * 4
 
     def test_export(self):
         with TmpDir() as dir_:
             filename = os.path.join(dir_, self.name)
-            self.fcs_writer.export(filename, self.data, self.channels, list('wxyz'))
-            fcs_header_seg = self.fcs_reader._analyze_header(filename)
-            fcs_vars, fcs_deli = self.fcs_reader._analyze_text(filename, fcs_header_seg.text_start,
-                                                               fcs_header_seg.text_end)
-            assert fcs_header_seg.data_start == int(fcs_vars['$BEGINDATA'])
-            assert fcs_header_seg.data_end == int(fcs_vars['$ENDDATA'])
+            self.fcs_writer.export(filename, self.data, self.channels, list("wxyz"))
+            with open(filename, "rb") as fp:
+                fcs_header_seg = self.fcs_reader._analyze_header(fp)
+                fp.seek(fcs_header_seg.text_start)
+                fcs_vars, fcs_deli = self.fcs_reader._analyze_text(
+                    fp, fcs_header_seg.text_start, fcs_header_seg.text_end
+                )
+                assert fcs_header_seg.data_start == int(fcs_vars["$BEGINDATA"])
+                assert fcs_header_seg.data_end == int(fcs_vars["$ENDDATA"])
 
-            assert self.fcs_reader.long_header(filename) == self.channels
-            assert self.fcs_reader.header(filename) == list('wxyz')
-
-    def _test_export2(self):
-        channel = ['Time', 'Event_length', 'Y89Di', 'Pd102Di', 'Rh103Di', 'Pd104Di',
-                   'Pd105Di', 'Pd106Di', 'Pd108Di', 'Cd110Di', 'Pd110Di', 'Cd112Di',
-                   'In113Di', 'In115Di', 'I127Di', 'La139Di', 'Ce140Di', 'Pr141Di',
-                   'Nd142Di', 'Nd143Di', 'Nd144Di', 'Nd145Di', 'Nd146Di', 'Sm147Di',
-                   'Nd148Di', 'Sm149Di', 'Nd150Di', 'Eu151Di', 'Sm152Di', 'Eu153Di',
-                   'Sm154Di', 'Gd155Di', 'Gd156Di', 'Gd157Di', 'Gd158Di', 'Tb159Di',
-                   'Gd160Di', 'Dy161Di', 'Dy162Di', 'Dy163Di', 'Dy164Di', 'Ho165Di',
-                   'Er166Di', 'Er167Di', 'Er168Di', 'Tm169Di', 'Er170Di', 'Yb171Di',
-                   'Yb172Di', 'Yb173Di', 'Yb174Di', 'Lu175Di', 'Yb176Di', 'Ir191Di',
-                   'Ir193Di', 'Pt195Di', 'Bi209Di']
-
-        c3 = ['Time', 'Event_length', 'CD45', 'Pd102Di', 'Rh103Di', 'Pd104Di',
-              'Pd105Di', 'Pd106Di', 'Pd108Di', 'Cd110Di', 'Pd110Di', 'Cd112Di',
-              'In113Di', 'CD57', 'I127Di', 'La139Di', 'EQBeads', 'CCR6', 'CD19',
-              'CD5', 'CD16', 'CD4', 'CD8a', 'CD11c', 'CD31', 'Sm149Di', 'Nd150Di',
-              'CD123', 'abTCR', 'EQBeads', 'CD3e', 'Gd155Di', 'Gd156Di', 'CXCR3',
-              'Gd158Di', 'Tb159Di', 'CD14', 'CD161', 'Dy162Di', 'HLA-DR', 'CD44',
-              'CD127', 'Er166Di', 'CD27', 'CD38', 'CD45RA', 'CD20', 'Yb171Di',
-              'IgD', 'CD56', 'CXCR5', 'EQBeads', 'Yb176Di', 'DNAIr', 'DNAIr',
-              'Cisplatin', 'Bi209Di']
-
-        c2 = ['Time', 'Event_length', 'CD45', 'Pd102Di', 'Rh103Di', 'Pd104Di',
-              'Pd105Di', 'Pd106Di', 'Pd108Di', 'Cd110Di', 'Pd110Di', 'Cd112Di',
-              'In113Di', 'In115Di', 'I127Di', 'La139Di', 'EQBeads', 'Pr141Di',
-              'Nd142Di', 'Nd143Di', 'Nd144Di', 'Nd145Di', 'Nd146Di', 'Sm147Di',
-              'Nd148Di', 'Sm149Di', 'CD64', 'Eu151Di', 'Sm152Di', 'CD13', 'CD3e',
-              'Gd155Di', 'Gd156Di', 'CD9', 'Gd158Di', 'Tb159Di', 'CD14',
-              'Dy161Di', 'CD29', 'Dy163Di', 'Dy164Di', 'Ho165Di', 'Er166Di',
-              'Er167Di', 'Er168Di', 'Tm169Di', 'Er170Di', 'Yb171Di', 'Yb172Di',
-              'Yb173Di', 'Yb174Di', 'Lu175Di', 'Yb176Di', 'DNAIr', 'DNAIr',
-              'Pt195Di', 'Bi209Di']
-
-        # print(c2[13], c3[13])
-        # c2[13] = c3[13]
-
-        f = '/Users/yang/Documents/test3.csv'
-        df = pd.read_csv(f)
-        data = df.values
-
-        with TmpDir() as dir_:
-            filename = os.path.join(dir_, self.name)
-            self.fcs_writer.export(filename, data, channel, c2)
-            fcs_header_seg = self.fcs_reader._analyze_header(filename)
-            fcs_vars, fcs_deli = self.fcs_reader._analyze_text(filename, fcs_header_seg.text_start,
-                                                               fcs_header_seg.text_end)
-
-            # self.assertEqual(fcs_header_seg.data_start, int(fcs_vars['$BEGINDATA']))
-            # self.assertEqual(fcs_header_seg.data_end, int(fcs_vars['$ENDDATA']))
-
-            assert self.fcs_reader.long_header(filename) == channel
-            assert self.fcs_reader.header(filename) == c2
-            expected_data = np.array(self.fcs_reader.data(filename))
-            np.testing.assert_array_almost_equal(data, expected_data)
-
-
-
+                assert self.fcs_reader.long_header(filename) == self.channels
+                assert self.fcs_reader.header(filename) == list("wxyz")
