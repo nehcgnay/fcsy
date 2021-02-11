@@ -1,15 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 import os
-import pytest
 from tempfile import mkdtemp
 from shutil import rmtree
 import numpy as np
 from mock import patch
+from numpy.core.fromnumeric import shape
 import pandas as pd
 from pandas.testing import assert_frame_equal
-from fcsy import *
+from fcsy.fcs import *
 
 
 class TmpDir:
@@ -19,83 +18,6 @@ class TmpDir:
 
     def __exit__(self, type, value, traceback):
         rmtree(self._tmp_dir_path)
-
-
-@patch("fcsy.fcs.FcsWriter")
-def test_write_fcs(MockWriter):
-    writer = MockWriter()
-    data = np.array([[1, 2], [3, 4]])
-    short_names = list("ab")
-    df = pd.DataFrame(data, columns=short_names)
-    fout = "test.fcs"
-    write_fcs(df, fout)
-
-    called_args = writer.export.call_args[0]
-
-    assert called_args[0] == fout
-    np.testing.assert_array_equal(called_args[1], data)
-    np.testing.assert_array_equal(called_args[2], short_names)
-    np.testing.assert_array_equal(called_args[3], short_names)
-
-    long_names = list("AB")
-    write_fcs(df, fout, long_names=long_names)
-    called_args = writer.export.call_args[0]
-    assert called_args[0] == fout
-    np.testing.assert_array_equal(called_args[1], data)
-    np.testing.assert_array_equal(called_args[2], long_names)
-    np.testing.assert_array_equal(called_args[3], short_names)
-
-
-@patch("fcsy.fcs.FcsReader")
-def test_read_fcs_names(MockReader):
-    name = "test.fcs"
-    data = np.array(
-        [[1.1, 2.1, 3.1, 4.0011], [11.1, 12.1, 13.1, 14.0011]], dtype=np.float32
-    )
-    channels = ["a", "b", "c", "d"]
-    long_channels = ["A", "B", "C", "D"]
-    fcs_writer = FcsWriter()
-
-    with TmpDir() as dir_:
-        filename = os.path.join(dir_, name)
-        fcs_writer.export(
-            filename, data, long_channels, channels
-        )
-
-        names = read_fcs_names(filename, "short")
-        np.testing.assert_array_equal(names, channels)
-
-        names = read_fcs_names(filename, "long")
-        np.testing.assert_array_equal(names, long_channels)
-
-        with pytest.raises(KeyError) as err:
-            read_fcs_names(filename, "XX")
-
-
-@patch("fcsy.fcs.read_fcs_names")
-@patch("fcsy.fcs.FcsReader")
-def test_read_fcs(MockReader, mock_read_fcs_names):
-    reader = MockReader()
-    data = np.array([[1, 2], [3, 4]])
-    short_names = list("ab")
-    long_names = list("AB")
-    reader.data.return_value = data
-    mock_read_fcs_names.return_value = short_names
-
-    df = read_fcs("f", "short")
-
-    reader.data.assert_called_with("f")
-    mock_read_fcs_names.assert_called_with("f", name_type="short")
-    np.testing.assert_array_equal(df.values, data)
-    np.testing.assert_array_equal(df.columns, short_names)
-
-    mock_read_fcs_names.return_value = long_names
-    df = read_fcs("f", "long")
-
-    reader.data.assert_called_with("f")
-    mock_read_fcs_names.assert_called_with("f", name_type="long")
-    np.testing.assert_array_equal(df.values, data)
-    np.testing.assert_array_equal(df.columns, long_names)
 
 
 class TestFCS:
@@ -112,72 +34,166 @@ class TestFCS:
         with TmpDir() as dir_:
             filename = os.path.join(dir_, self.name)
             self.fcs_writer.export(filename, self.data, self.channels)
-            fcs = Fcs(filename)
+            fcs = Fcs.from_file(filename)
             assert fcs.short_channels == self.channels
 
     def test_count(self):
         with TmpDir() as dir_:
             filename = os.path.join(dir_, self.name)
             self.fcs_writer.export(filename, self.data, self.channels)
-            fcs = Fcs(filename)
+            fcs = Fcs.from_file(filename)
             assert fcs.count == len(self.data)
 
     def test_data(self):
         with TmpDir() as dir_:
             filename = os.path.join(dir_, self.name)
             self.fcs_writer.export(filename, self.data, self.channels)
-            fcs = Fcs(filename)
-            assert np.array_equal(fcs.read_data(), self.data)
+            fcs = Fcs.from_file(filename)
+            assert np.array_equal(fcs.values, self.data)
 
         chn = ["a", "b"]
         data = np.array([[1, 2], [11, 12]])
         with TmpDir() as dir_:
             filename = os.path.join(dir_, self.name)
             self.fcs_writer.export(filename, data, chn)
-            fcs = Fcs(filename)
-            assert np.array_equal(fcs.read_data(), data)
+            fcs = Fcs.from_file(filename)
+            assert np.array_equal(fcs.values, data)
 
-    def test_dataframe(self):
+    def test_export(self):
         with TmpDir() as dir_:
-            filename = os.path.join(dir_, self.name)
-            self.fcs_writer.export(
-                filename, self.data, self.long_channels, self.channels
+            filename = os.path.join(dir_, "export.fcs")
+            text_start = 256
+            fseg = TextSegment(
+                self.data.shape[0],
+                self.long_channels,
+                self.channels,
+                self.data.max(axis=0),
+                text_start=text_start,
             )
-            fcs = Fcs(filename)
-            df = fcs.to_dataframe()
-            np.testing.assert_array_equal(df.values, self.data)
-            np.testing.assert_array_equal(
-                df.columns,
-                pd.MultiIndex.from_tuples(
-                    zip(self.channels, self.long_channels), names=["short", "long"]
-                ),
+            header = HeaderSegment(
+                text_start, fseg.text_end, fseg.data_start, fseg.data_end
             )
-
-    def test_from_fcs(self):
-        with TmpDir() as dir_:
-            filename = os.path.join(dir_, self.name)
-            self.fcs_writer.export(
-                filename, self.data, self.long_channels, self.channels
+            data = DataSegment(
+                self.data,
+                fseg.datatype,
+                self.data.shape[1],
+                self.data.shape[0],
+                fseg.endian,
             )
-            df = DataFrame.from_fcs(filename, 'multi')
-            np.testing.assert_array_equal(df.values, self.data)
-            np.testing.assert_array_equal(
-                df.columns,
-                pd.MultiIndex.from_tuples(
-                    zip(self.channels, self.long_channels), names=["short", "long"]
-                ),
-            )
+            fcs = Fcs(self.data, self.long_channels, self.channels)
+            fcs.export(filename)
 
-    def test_to_fcs(self):
-        df = DataFrame(self.data, columns=self.channels)
-        with TmpDir() as dir_:
-            filename = os.path.join(dir_, 'export.fcs')
-            df.to_fcs(filename)
+            with open(filename, "rb") as fp:
+                assert fp.read(58).decode("UTF-8") == header.to_string()
+                fp.seek(text_start)
+                assert (
+                    fp.read(header.text_end - fseg.text_start + 1)
+                    .decode("UTF-8")
+                    .strip()
+                    == fseg.to_string()
+                )
+                fp.seek(fseg.data_start)
+                dseg = DataSegment.from_string(
+                    fp.read(fseg.data_end - fseg.data_start + 1),
+                    fseg.datatype,
+                    len(fseg.pnn),
+                    fseg.tot,
+                    fseg.endian,
+                )
+                assert np.array_equal(dseg.values, self.data)
 
-            fcs = Fcs(filename)
-            df2 = fcs.to_dataframe(channel_type='short')
 
-        assert_frame_equal(df, df2)
+class TestTextSegment:
+    def setup_method(self):
+        self.name = "test.fcs"
+        self.data = np.array(
+            [[1.1, 2.1, 3.1, 4.0011], [11.1, 12.1, 13.1, 14.0011]], dtype=np.float32
+        )
+        self.channels = ["a", "b", "c", "d"]
+        self.long_channels = ["A", "B", "C", "D"]
+
+    def test_locations(self):
+        fseg = TextSegment(
+            self.data.shape[0], self.long_channels, self.channels, self.data.max(axis=0)
+        )
+        assert fseg.text_start == 256
+        assert fseg.text_end == 565
+        assert fseg.data_start == 609
+        assert fseg.data_end == 640
+
+    def test_data_pos(self):
+        assert TextSegment.cal_datapos(10, 100) == (14, 113)
+
+    def test_dict_to_string(self):
+        text = {}
+        text["BEGINDATA"] = "256"
+        text["BYTEORD"] = "1,2,3,4"  # little endian
+        assert (
+            TextSegment.dict_to_string(text, "/") == "/$BEGINDATA/256/$BYTEORD/1,2,3,4/"
+        )
+
+    def test_cal_max_text_ends(self):
+        assert TextSegment.cal_max_text_ends({}, "/", 0) == 124
+
+
+class TestHeaderSegment:
+    def setup_method(self):
+        self.name = "test.fcs"
+        self.data = np.array(
+            [[1.1, 2.1, 3.1, 4.0011], [11.1, 12.1, 13.1, 14.0011]], dtype=np.float32
+        )
+        self.channels = ["a", "b", "c", "d"]
+        self.long_channels = ["A", "B", "C", "D"]
+
+    def test_to_string(self):
+        header = HeaderSegment(256, 561, 563, 99999999, 0, 0)
+        assert (
+            header.to_string()
+            == "FCS3.1         256     561     56399999999       0       0"
+        )
+
+        header = HeaderSegment(256, 561, 563, 100000000, 0, 0)
+        assert (
+            header.to_string()
+            == "FCS3.1         256     561     563       0       0       0"
+        )
+
+    def test_from_string(self):
+        s = b"FCS3.1         256     561     563     789    1000    2000"
+        header = HeaderSegment.from_string(s)
+        assert header.asdict() == dict(
+            text_start=256,
+            text_end=561,
+            data_start=563,
+            data_end=789,
+            analysis_start=1000,
+            analysis_end=2000,
+        )
+        assert header.ver == "FCS3.1"
+
+
+class TestDataSegment:
+    def setup_method(self):
+        self.name = "test.fcs"
+        self.data = np.array(
+            [[1.1, 2.1, 3.1, 4.0011], [11.1, 12.1, 13.1, 14.0011]], dtype=np.float32
+        )
+        self.channels = ["a", "b", "c", "d"]
+        self.long_channels = ["A", "B", "C", "D"]
+
+    def test_to_string(self):
+        data = DataSegment(self.data, "f", self.data.shape[1], self.data.shape[0], "<")
+        assert (
+            data.to_string()
+            == b"\xcd\xcc\x8c?ff\x06@ffF@\x03\t\x80@\x9a\x991A\x9a\x99AA\x9a\x99QA\x81\x04`A"
+        )
+
+    def test_from_string(self):
+        s = b"\xcd\xcc\x8c?ff\x06@ffF@\x03\t\x80@\x9a\x991A\x9a\x99AA\x9a\x99QA\x81\x04`A"
+        data = DataSegment.from_string(
+            s, "f", self.data.shape[1], self.data.shape[0], "<"
+        )
+        print(data.values)
 
 
 class TestFCSReader:
