@@ -1,7 +1,9 @@
-__version__ = '0.6.0'
+__version__ = "0.6.0"
 
 import pandas as pd
 import warnings
+from typing import Union
+from enum import Enum
 from .fcs import Fcs
 
 
@@ -12,7 +14,14 @@ __all__ = [
     "read_fcs",
     "read_fcs_names",
     "read_channels",
+    "read_events_num"
 ]
+
+
+class ChannelType(Enum):
+    short = "short"
+    long = "long"
+    multi = "multi"
 
 
 def read_fcs_names(f, name_type="short"):
@@ -47,7 +56,15 @@ class DataFrame(pd.DataFrame):
     def _constructor(self):
         return DataFrame
 
-    def to_fcs(self, path):
+    def to_fcs(self, path: str):
+
+        """
+        write fcs
+
+        :param path: path to the fcs
+        :type path: str
+        """
+
         long_channels = None
         if isinstance(self.columns, pd.MultiIndex):
             short_channels = self.columns.get_level_values("short").values
@@ -58,7 +75,18 @@ class DataFrame(pd.DataFrame):
         Fcs(self.values, short_channels, long_channels).export(path)
 
     @classmethod
-    def from_fcs(cls, path, channel_type="short"):
+    def from_fcs(cls, path: str, channel_type: ChannelType = "short"):
+        """
+        Read dataframe from fcs
+
+        :param path: path to the fcs
+        :type path: str
+        :param channel_type: {"short", "long", "multi"}, defaults to "short"
+        :type channel_type: ChannelType, optional
+        :return: the dataframe contains the fcs channels and data
+        :rtype: DataFrame
+        """
+
         fcs = Fcs.from_file(path)
         colmap = {
             "short": fcs.short_channels,
@@ -71,7 +99,20 @@ class DataFrame(pd.DataFrame):
         return DataFrame(fcs.values, columns=colmap[channel_type])
 
 
-def read_channels(path: str, channel_type: str):
+def read_channels(
+    path: str, channel_type: ChannelType = "short"
+) -> Union[list, pd.MultiIndex]:
+    """
+    Read the fcs channels (without data)
+
+    :param path: path to the fcs
+    :type path: str
+    :param channel_type: {"short", "long", "multi"}, defaults to "short"
+    :type channel_type: ChannelType, optional
+    :return: list of the channels
+    :rtype: Union[list, pd.MultiIndex]
+    """
+
     fseg = Fcs.read_text_segment(path)
     maps = {
         "short": fseg.pnn,
@@ -84,6 +125,15 @@ def read_channels(path: str, channel_type: str):
     return maps[channel_type]
 
 
-def read_events_num(path: str):
+def read_events_num(path: str) -> int:
+    """
+    Read the fcs events number
+
+    :param path: path to the fcs
+    :type path: str
+    :return: the events number
+    :rtype: int
+    """
+
     fseg = Fcs.read_text_segment(path)
     return fseg.tot

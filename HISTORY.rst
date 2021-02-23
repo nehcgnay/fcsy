@@ -2,7 +2,6 @@
 History
 =======
 
-0.1.0 (2018-12-18)
-------------------
+Consult the Releases_ page for fixes and enhancements of each version.
 
-* First release on PyPI.
+.. _Releases: https://github.com/nehcgnay/fcsy/releases
