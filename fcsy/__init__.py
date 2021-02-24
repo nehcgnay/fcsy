@@ -3,7 +3,6 @@ __version__ = "0.6.0"
 import pandas as pd
 import warnings
 from typing import Union
-from enum import Enum
 from .fcs import Fcs
 
 
@@ -16,12 +15,6 @@ __all__ = [
     "read_channels",
     "read_events_num"
 ]
-
-
-class ChannelType(Enum):
-    short = "short"
-    long = "long"
-    multi = "multi"
 
 
 def read_fcs_names(f, name_type="short"):
@@ -75,14 +68,14 @@ class DataFrame(pd.DataFrame):
         Fcs(self.values, short_channels, long_channels).export(path)
 
     @classmethod
-    def from_fcs(cls, path: str, channel_type: ChannelType = "short"):
+    def from_fcs(cls, path: str, channel_type: str = "short"):
         """
         Read dataframe from fcs
 
         :param path: path to the fcs
         :type path: str
         :param channel_type: {"short", "long", "multi"}, defaults to "short"
-        :type channel_type: ChannelType, optional
+        :type channel_type: str, optional
         :return: the dataframe contains the fcs channels and data
         :rtype: DataFrame
         """
@@ -100,7 +93,7 @@ class DataFrame(pd.DataFrame):
 
 
 def read_channels(
-    path: str, channel_type: ChannelType = "short"
+    path: str, channel_type: str = "short"
 ) -> Union[list, pd.MultiIndex]:
     """
     Read the fcs channels (without data)
@@ -108,7 +101,7 @@ def read_channels(
     :param path: path to the fcs
     :type path: str
     :param channel_type: {"short", "long", "multi"}, defaults to "short"
-    :type channel_type: ChannelType, optional
+    :type channel_type: str, optional
     :return: list of the channels
     :rtype: Union[list, pd.MultiIndex]
     """

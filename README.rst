@@ -2,8 +2,11 @@
 .. image:: https://img.shields.io/pypi/v/fcsy.svg
     :target: https://pypi.python.org/pypi/fcsy
 .. image:: https://readthedocs.org/projects/fcsy/badge/?version=latest
-        :target: https://fcsy.readthedocs.io/en/latest/?badge=latest
-        :alt: Documentation Status
+    :target: https://fcsy.readthedocs.io/en/latest/?badge=latest
+    :alt: Documentation Status
+.. image:: https://img.shields.io/pypi/l/fcsy.svg
+    :target: https://github.com/nehcgnay/fcsy/blob/master/LICENSE
+
 .. image:: https://img.shields.io/pypi/dm/fcsy?style=flat-square
 .. image:: https://github.com/nehcgnay/fcsy/workflows/Python%20package/badge.svg
 .. image:: https://github.com/nehcgnay/fcsy/workflows/Upload%20Python%20Package/badge.svg
@@ -61,6 +64,10 @@ Read events number
     from fcsy import read_events_num
 
     read_events_num('sample1.fcs')
+
+Documentation
+-------------
+The documentation is available on https://fcsy.readthedocs.io/
 
 License
 -------
