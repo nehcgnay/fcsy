@@ -6,10 +6,12 @@
     :alt: Documentation Status
 .. image:: https://img.shields.io/pypi/l/fcsy.svg
     :target: https://github.com/nehcgnay/fcsy/blob/master/LICENSE
-
 .. image:: https://img.shields.io/pypi/dm/fcsy?style=flat-square
+    :target: https://img.shields.io/pypi/dm/fcsy
 .. image:: https://github.com/nehcgnay/fcsy/workflows/Python%20package/badge.svg
+    :target: https://github.com/nehcgnay/fcsy/workflows/Python%20package
 .. image:: https://github.com/nehcgnay/fcsy/workflows/Upload%20Python%20Package/badge.svg
+    :target: https://github.com/nehcgnay/fcsy/workflows/Upload%20Python%20Package
 
 
 
