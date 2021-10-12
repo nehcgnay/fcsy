@@ -40,7 +40,7 @@ setup(
     description="A package for processing FCS files",
     install_requires=requirements,
     license="MIT license",
-    long_description_content_type="text/markdown",
+    long_description_content_type="text/x-rst",
     long_description=readme + "\n\n" + history,
     include_package_data=True,
     keywords="fcsy",
@@ -50,6 +50,6 @@ setup(
     test_suite="tests",
     tests_require=test_requirements,
     url="https://github.com/nehcgnay/fcsy",
-    version="0.6.0",
+    version="0.7.0",
     zip_safe=False,
 )
