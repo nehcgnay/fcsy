@@ -3,7 +3,6 @@
 """Main module."""
 from io import BytesIO, StringIO
 import struct
-from collections import namedtuple
 import numpy as np
 
 
@@ -173,11 +172,11 @@ class TextSegment:
 
     @property
     def data_start(self):
-        return self.text["BEGINDATA"]
+        return int(self.text["BEGINDATA"])
 
     @property
     def data_end(self):
-        return self.text["ENDDATA"]
+        return int(self.text["ENDDATA"])
 
     @property
     def text_end(self):
@@ -238,11 +237,11 @@ class TextSegment:
             delim=delim,
             datatype=vars["DATATYPE"],
             data_start=vars["BEGINDATA"],
-            data_end=["ENDDATA"],
+            data_end=vars["ENDDATA"],
             analysis_start=vars["BEGINANALYSIS"],
             analysis_end=vars["ENDANALYSIS"],
             stext_start=vars["BEGINSTEXT"],
-            stext_end=vars["ENDSTEXT"]            
+            stext_end=vars["ENDSTEXT"],
         )
 
     @classmethod
@@ -401,4 +400,3 @@ class Fcs:
     @property
     def count(self):
         return self.tseg.tot
-

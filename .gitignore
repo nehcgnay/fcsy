@@ -105,3 +105,6 @@ ENV/
 #ide
 .idea/
 .vscode/
+
+# local-files
+*.fcs

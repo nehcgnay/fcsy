@@ -105,12 +105,16 @@ class TestTextSegment:
 
     def test_locations(self):
         fseg = TextSegment(
-            self.data.shape[0], self.long_channels, self.channels, self.data.max(axis=0)
+            self.data.shape[0],
+            self.long_channels,
+            self.channels,
+            self.data.max(axis=0),
+            data_start=1000,
         )
         assert fseg.text_start == 256
-        assert fseg.text_end == 565
-        assert fseg.data_start == 609
-        assert fseg.data_end == 640
+        assert fseg.text_end == 564
+        assert fseg.data_start == 1000
+        assert fseg.data_end == 0
 
     def test_data_pos(self):
         assert TextSegment.cal_datapos(10, 100) == (14, 113)
@@ -122,6 +126,14 @@ class TestTextSegment:
         assert (
             TextSegment.dict_to_string(text, "/") == "/$BEGINDATA/256/$BYTEORD/1,2,3,4/"
         )
+
+    def test_from_string(self):
+        with open('tests/TextSegment.txt', 'rb') as fp:
+            s = fp.readline()
+
+        fseq = TextSegment.from_string(s)
+        assert fseq.data_start == 4064
+        assert fseq.data_end == 119207043
 
     def test_cal_max_text_ends(self):
         assert TextSegment.cal_max_text_ends({}, "/", 0) == 124

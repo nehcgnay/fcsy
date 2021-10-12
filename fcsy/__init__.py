@@ -13,7 +13,7 @@ __all__ = [
     "read_fcs",
     "read_fcs_names",
     "read_channels",
-    "read_events_num"
+    "read_events_num",
 ]
 
 
@@ -92,9 +92,7 @@ class DataFrame(pd.DataFrame):
         return DataFrame(fcs.values, columns=colmap[channel_type])
 
 
-def read_channels(
-    path: str, channel_type: str = "short"
-) -> Union[list, pd.MultiIndex]:
+def read_channels(path: str, channel_type: str = "short") -> Union[list, pd.MultiIndex]:
     """
     Read the fcs channels (without data)
 
