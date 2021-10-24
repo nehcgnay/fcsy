@@ -284,11 +284,8 @@ class DataSegment:
         self.endian = endian
 
     def to_string(self):
-        format_ = self.endian + str(self.num_dims) + self.datatype.lower()
-        s = b""
-        for i in range(self.num_rows):
-            s += struct.pack(format_, *self.values[i])
-        return s
+        format_ = self.endian + self.datatype.lower()
+        return self.values.astype(format_).tobytes()
 
     @classmethod
     def from_string(cls, s: str, datatype, num_dims, num_rows, endian):
