@@ -68,13 +68,14 @@ class HeaderSegment:
     def _write_locations(self, sp: StringIO, type: str):
         sp.seek(self.ranges[f"{type}_start"][0])
         start_str = str(self.asdict()[f"{type}_start"])
-        if len(start_str) > 8:
+        end_str = str(self.asdict()[f"{type}_end"])
+
+        if len(start_str) > 8 or len(end_str) > 8:
             start_str = "0"
+            end_str = "0"
+
         sp.write((8 - len(start_str)) * " " + start_str)
         sp.seek(self.ranges[f"{type}_end"][0])
-        end_str = str(self.asdict()[f"{type}_end"])
-        if len(end_str) > 8:
-            end_str = "0"
         sp.write((8 - len(end_str)) * " " + end_str)
 
     def to_string(self):

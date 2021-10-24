@@ -175,7 +175,7 @@ class TestHeaderSegment:
         header = HeaderSegment(256, 561, 563, 100000000, 0, 0)
         assert (
             header.to_string()
-            == "FCS3.1         256     561     563       0       0       0"
+            == "FCS3.1         256     561       0       0       0       0"
         )
 
     def test_from_string(self):
