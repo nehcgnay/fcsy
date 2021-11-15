@@ -74,7 +74,9 @@ class DataFrame(pd.DataFrame):
 
         :param path: path to the fcs
         :type path: str
-        :param channel_type: {"short", "long", "multi"}, defaults to "short"
+        :param channel_type: {"short", "long", "multi"}, defaults to "short". 
+            "short" and "long" refer to short ($PnN) and long ($PnS) name of parameter n, respectively. 
+            See FCS3.1 data standard for detailed explanation.
         :type channel_type: str, optional
         :return: the dataframe contains the fcs channels and data
         :rtype: DataFrame
@@ -98,7 +100,10 @@ def read_channels(path: str, channel_type: str = "short") -> Union[list, pd.Mult
 
     :param path: path to the fcs
     :type path: str
-    :param channel_type: {"short", "long", "multi"}, defaults to "short"
+    :param channel_type: {"short", "long", "multi"}, defaults to "short".
+        "short" and "long" refer to short ($PnN) and long ($PnS) name of parameter n, respectively. 
+        See FCS3.1 data standard for detailed explanation.
+        
     :type channel_type: str, optional
     :return: list of the channels
     :rtype: Union[list, pd.MultiIndex]

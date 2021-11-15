@@ -18,6 +18,7 @@
 fcsy: A package for processing FCS files.
 -----------------------------------------
 
+fcsy is developed based on `Data File Standard for Flow Cytometry Version FCS 3.1 <https://www.genepattern.org/attachments/fcs_3_1_standard.pdf>`_
 
 Installation
 ------------
