@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
-
-"""Main module."""
 from io import BytesIO, StringIO
 import struct
 import numpy as np
+
+__all__ = ["HeaderSegment", "DataSegment", "TextSegment", "Fcs"]
 
 
 class HeaderSegment:

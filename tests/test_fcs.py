@@ -3,9 +3,10 @@
 import os
 from tempfile import mkdtemp
 from shutil import rmtree
+import pandas as pd
 import numpy as np
 from fcsy import DataFrame
-from fcsy.fcs import *
+from fcsy.fcs import TextSegment, HeaderSegment, DataSegment, Fcs
 
 
 class TmpDir:
@@ -25,6 +26,19 @@ class TestFCS:
         )
         self.channels = ["a", "b", "c", "d"]
         self.long_channels = ["A", "B", "C", "D"]
+
+    def test_read_text_segment(self):
+        with TmpDir() as dir_:
+            filename = os.path.join(dir_, self.name)
+            cols = pd.MultiIndex.from_tuples(
+                list(zip(self.channels, self.long_channels)),
+                names=["short", "long"],
+            )
+            df = DataFrame(self.data, columns=cols)
+            df.to_fcs(filename)
+            seg = Fcs.read_text_segment(filename)
+            assert seg.pnn == self.channels
+            assert seg.pns == self.long_channels
 
     def test_header(self):
         with TmpDir() as dir_:
@@ -128,7 +142,7 @@ class TestTextSegment:
         )
 
     def test_from_string(self):
-        with open('tests/TextSegment.txt', 'rb') as fp:
+        with open("tests/TextSegment.txt", "rb") as fp:
             s = fp.readline()
 
         fseq = TextSegment.from_string(s)
