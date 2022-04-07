@@ -4,7 +4,14 @@ from shutil import rmtree
 import numpy as np
 import pandas as pd
 from pandas.testing import assert_frame_equal
-from fcsy import DataFrame, read_channels, read_events_num, read_fcs, write_fcs
+from fcsy import (
+    DataFrame,
+    read_channels,
+    read_events_num,
+    read_fcs,
+    write_fcs,
+    rename_channels,
+)
 
 
 class TmpDir:
@@ -92,3 +99,26 @@ class TestDataFrame:
                     names=["short", "long"],
                 ),
             )
+
+    def test_rename_channels(self):
+        with TmpDir() as dir_:
+            df = DataFrame(
+                self.data,
+                columns=pd.MultiIndex.from_tuples(
+                    zip(self.short_channels, self.long_channels),
+                    names=["short", "long"],
+                ),
+            )
+            filename = os.path.join(dir_, self.name)
+            df.to_fcs(filename)
+            rename_channels(
+                filename, dict(zip(self.short_channels, list("abcd"))), "short"
+            )
+            short_channels = read_channels(filename, "short")
+            assert short_channels == list("abcd")
+
+            rename_channels(
+                filename, dict(zip(self.long_channels, list("ABCD"))), "long"
+            )
+            long_channels = read_channels(filename, "long")
+            assert long_channels == list("ABCD")

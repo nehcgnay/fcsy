@@ -4,6 +4,7 @@ import pandas as pd
 import warnings
 from typing import Union
 from .fcs import Fcs
+from ._typing import ReadFcsBuffer
 
 
 __all__ = [
@@ -68,11 +69,16 @@ class DataFrame(pd.DataFrame):
         Fcs(self.values, short_channels, long_channels).export(path)
 
     @classmethod
-    def from_fcs(cls, path: str, channel_type: str = "short"):
+    def from_fcs(
+        cls, filepath_or_buffer: Union[str, ReadFcsBuffer], channel_type: str = "short"
+    ):
         """
         Read dataframe from fcs
 
-        :param path: path to the fcs
+        :param filepath_or_buffer: str or file-like object
+            String, or file-like object implementing a ``read()`` function.
+            The string could be a s3 URL with the format:
+            ``s3://{bucket}/{key}``.
         :type path: str
         :param channel_type: {"short", "long", "multi"}, defaults to "short".
             "short" and "long" refer to short ($PnN) and long ($PnS) name of parameter n, respectively.
@@ -82,7 +88,7 @@ class DataFrame(pd.DataFrame):
         :rtype: DataFrame
         """
 
-        fcs = Fcs.from_file(path)
+        fcs = Fcs.from_file(filepath_or_buffer)
         colmap = {
             "short": fcs.short_channels,
             "long": fcs.long_channels,
@@ -94,11 +100,16 @@ class DataFrame(pd.DataFrame):
         return DataFrame(fcs.values, columns=colmap[channel_type])
 
 
-def read_channels(path: str, channel_type: str = "short") -> Union[list, pd.MultiIndex]:
+def read_channels(
+    filepath_or_buffer: Union[str, ReadFcsBuffer], channel_type: str = "short"
+) -> Union[list, pd.MultiIndex]:
     """
     Read the fcs channels (without data)
 
-    :param path: path to the fcs
+    :param filepath_or_buffer: str or file-like object
+            String, or file-like object implementing a ``read()`` function.
+            The string could be a s3 URL with the format:
+            ``s3://{bucket}/{key}``.
     :type path: str
     :param channel_type: {"short", "long", "multi"}, defaults to "short".
         "short" and "long" refer to short ($PnN) and long ($PnS) name of parameter n, respectively.
@@ -109,7 +120,7 @@ def read_channels(path: str, channel_type: str = "short") -> Union[list, pd.Mult
     :rtype: Union[list, pd.MultiIndex]
     """
 
-    fseg = Fcs.read_text_segment(path)
+    fseg = Fcs.read_text_segment(filepath_or_buffer)
     maps = {
         "short": fseg.pnn,
         "long": fseg.pns,
@@ -121,15 +132,24 @@ def read_channels(path: str, channel_type: str = "short") -> Union[list, pd.Mult
     return maps[channel_type]
 
 
-def read_events_num(path: str) -> int:
+def rename_channels(filepath_or_buffer: str, channels: dict, channel_type: str) -> None:
+    tseg = Fcs.read_text_segment(filepath_or_buffer)
+    {"short": tseg.update_pnn, "long": tseg.update_pns}[channel_type](channels)
+    Fcs.write_text_segment(filepath_or_buffer, tseg)
+
+
+def read_events_num(filepath_or_buffer: Union[str, ReadFcsBuffer]) -> int:
     """
     Read the fcs events number
 
-    :param path: path to the fcs
+    :param filepath_or_buffer: str or file-like object
+            String, or file-like object implementing a ``read()`` function.
+            The string could be a s3 URL with the format:
+            ``s3://{bucket}/{key}``.
     :type path: str
     :return: the events number
     :rtype: int
     """
 
-    fseg = Fcs.read_text_segment(path)
+    fseg = Fcs.read_text_segment(filepath_or_buffer)
     return fseg.tot

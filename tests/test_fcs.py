@@ -78,13 +78,6 @@ class TestFCS:
             header = HeaderSegment(
                 text_start, fseg.text_end, fseg.data_start, fseg.data_end
             )
-            data = DataSegment(
-                self.data,
-                fseg.datatype,
-                self.data.shape[1],
-                self.data.shape[0],
-                fseg.endian,
-            )
             fcs = Fcs(self.data, self.long_channels, self.channels)
             fcs.export(filename)
 
@@ -106,6 +99,69 @@ class TestFCS:
                     fseg.endian,
                 )
                 assert np.array_equal(dseg.values, self.data)
+
+    def test_buffer_export(self):
+        with TmpDir() as dir_:
+            filename = os.path.join(dir_, "export.fcs")
+            text_start = 256
+            fseg = TextSegment(
+                self.data.shape[0],
+                self.long_channels,
+                self.channels,
+                self.data.max(axis=0),
+                text_start=text_start,
+            )
+            header = HeaderSegment(
+                text_start, fseg.text_end, fseg.data_start, fseg.data_end
+            )
+            fcs = Fcs(self.data, self.long_channels, self.channels)
+            with open(filename, "wb") as fp:
+                fcs.export(fp)
+
+            with open(filename, "rb") as fp:
+                assert fp.read(58).decode("UTF-8") == header.to_string()
+                fp.seek(text_start)
+                assert (
+                    fp.read(header.text_end - fseg.text_start + 1)
+                    .decode("UTF-8")
+                    .strip()
+                    == fseg.to_string()
+                )
+                fp.seek(fseg.data_start)
+                dseg = DataSegment.from_string(
+                    fp.read(fseg.data_end - fseg.data_start + 1),
+                    fseg.datatype,
+                    len(fseg.pnn),
+                    fseg.tot,
+                    fseg.endian,
+                )
+                assert np.array_equal(dseg.values, self.data)
+
+    def test_update_channels(self):
+        with TmpDir() as dir_:
+            filename = os.path.join(dir_, "export.fcs")
+            text_start = 256
+            fseg = TextSegment(
+                self.data.shape[0],
+                self.long_channels,
+                self.channels,
+                self.data.max(axis=0),
+                text_start=text_start,
+            )
+            header = HeaderSegment(
+                text_start, fseg.text_end, fseg.data_start, fseg.data_end
+            )
+            fcs = Fcs(self.data, self.long_channels, self.channels)
+            fcs.export(filename)
+
+            Fcs.update_channels(filename, {"a": "aa"}, "short")
+
+            tseg = Fcs.read_text_segment(filename)
+
+            # # tseg.update_pns({"a": "aa"})
+            assert tseg.pns == ["aa", "b", "c", "d"]
+            # with open(filename, 'rb') as fp:
+            #     print(fp.readlines())
 
 
 class TestTextSegment:
@@ -168,6 +224,36 @@ class TestTextSegment:
         start, end = TextSegment.cal_datapos(textend, datasize)
         assert start == start_expected
         assert end == end_expected
+
+    def test_update_pns(self):
+        fseg = TextSegment(
+            self.data.shape[0],
+            self.long_channels,
+            self.channels,
+            self.data.max(axis=0),
+            data_start=1000,
+        )
+        fseg.update_pns({"a": "aa", "b": "bb"})
+        assert fseg.pns == ["aa", "bb", "c", "d"]
+
+        text_str = fseg.to_string()
+        assert "$P1S/aa" in text_str
+        assert "$P2S/bb" in text_str
+
+    def test_update_pnn(self):
+        fseg = TextSegment(
+            self.data.shape[0],
+            self.long_channels,
+            self.channels,
+            self.data.max(axis=0),
+            data_start=1000,
+        )
+        fseg.update_pnn({"A": "AA", "B": "BB"})
+        assert fseg.pnn == ["AA", "BB", "C", "D"]
+
+        text_str = fseg.to_string()
+        assert "$P1N/AA" in text_str
+        assert "$P2N/BB" in text_str
 
 
 class TestHeaderSegment:

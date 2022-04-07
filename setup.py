@@ -23,6 +23,8 @@ test_requirements = [
     "pytest",
 ]
 
+extras_require = {"boto3": ["boto3>=1.10.0"]}
+
 setup(
     author="yc",
     author_email="yang.chen@scilifelab.se",
@@ -52,4 +54,5 @@ setup(
     url="https://github.com/nehcgnay/fcsy",
     version="0.9.0",
     zip_safe=False,
+    extras_require=extras_require,
 )

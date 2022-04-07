@@ -1,6 +1,7 @@
 from io import BytesIO, StringIO
 import struct
 import numpy as np
+from .helper import bufferize
 
 __all__ = ["HeaderSegment", "DataSegment", "TextSegment", "Fcs"]
 
@@ -201,6 +202,16 @@ class TextSegment:
     def to_string(self):
         return self.dict_to_string(self.text, self.delim)
 
+    def update_pns(self, mappings):
+        for k, v in mappings.items():
+            self.pns[self.pns.index(k)] = v
+        self.text = self.build()
+
+    def update_pnn(self, mappings):
+        for k, v in mappings.items():
+            self.pnn[self.pnn.index(k)] = v
+        self.text = self.build()
+
     @classmethod
     def from_string(self, s):
         delim = s[:1]
@@ -220,21 +231,21 @@ class TextSegment:
         short_channels = list()
         max_values = list()
         for n in range(int(vars.pop("PAR"))):
-            long_channels.append(vars.pop("P%dN" % (n + 1)))
-            short_channels.append(
+            short_channels.append(vars.pop("P%dN" % (n + 1)))
+            long_channels.append(
                 vars.pop("P%dS" % (n + 1)) if "P%dS" % (n + 1) in vars else " "
             )
             max_values.append(int(vars.pop("P%dR" % (n + 1))))
 
         return TextSegment(
             int(vars["TOT"]),
-            long_channels,
             short_channels,
+            long_channels,
             max_values,
             mode=vars["MODE"],
             next_data=vars["NEXTDATA"],
             byte_order=vars["BYTEORD"],
-            delim=delim,
+            delim=delim.decode("UTF-8"),
             datatype=vars["DATATYPE"],
             data_start=vars["BEGINDATA"],
             data_end=vars["ENDDATA"],
@@ -246,8 +257,10 @@ class TextSegment:
 
     @classmethod
     def dict_to_string(cls, dict_, delim):
+        # print('convert', dict_)
         s = delim
         for i in dict_:
+            # print(type(i), type(dict_[i]), type(delim), i, dict_[i])
             s += "$%s%s%s%s" % (i, delim, dict_[i], delim)
         return s
 
@@ -347,52 +360,69 @@ class Fcs:
         )
 
     @classmethod
-    def from_file(cls, filename, file_opener=open):
-        with file_opener(filename, "rb") as fp:
-            header = HeaderSegment.from_string(fp.read(58))
-            fp.seek(header.text_start)
-            fseg = TextSegment.from_string(
-                fp.read(header.text_end - header.text_start + 1)
-            )
-            data_start = (
-                header.data_start if header.data_start != 0 else fseg.data_start
-            )
-            data_end = header.data_end if header.data_end != 0 else fseg.data_end
-            fp.seek(data_start)
-            data = DataSegment.from_string(
-                fp.read(data_end - data_start + 1),
-                fseg.datatype,
-                len(fseg.pnn),
-                fseg.tot,
-                fseg.endian,
-            )
+    @bufferize
+    def from_file(cls, filepath_or_buffer):
+        header = HeaderSegment.from_string(filepath_or_buffer.read(58))
+        filepath_or_buffer.seek(header.text_start)
+        fseg = TextSegment.from_string(
+            filepath_or_buffer.read(header.text_end - header.text_start + 1)
+        )
+        data_start = header.data_start if header.data_start != 0 else fseg.data_start
+        data_end = header.data_end if header.data_end != 0 else fseg.data_end
+        filepath_or_buffer.seek(data_start)
+        data = DataSegment.from_string(
+            filepath_or_buffer.read(data_end - data_start + 1),
+            fseg.datatype,
+            len(fseg.pnn),
+            fseg.tot,
+            fseg.endian,
+        )
 
         return Fcs(data.values, fseg.pnn, fseg.pns)
 
     @classmethod
-    def read_text_segment(cls, filename):
-        with open(filename, "rb") as fp:
-            header = HeaderSegment.from_string(fp.read(58))
-            fp.seek(header.text_start)
-            fseg = TextSegment.from_string(
-                fp.read(header.text_end - header.text_start + 1)
-            )
+    @bufferize
+    def read_text_segment(cls, filepath_or_buffer):
+        header = HeaderSegment.from_string(filepath_or_buffer.read(58))
+        filepath_or_buffer.seek(header.text_start)
+        fseg = TextSegment.from_string(
+            filepath_or_buffer.read(header.text_end - header.text_start + 1)
+        )
+
         return fseg
 
-    def write_bytes(self, f, s):
+    @classmethod
+    def write_bytes(cls, f, s):
         if not type(s) == bytes:
             f.write(s.encode("UTF-8"))
         else:
             f.write(s)
 
-    def export(self, name):
-        with open(name, "wb") as fh:
-            self.write_bytes(fh, self.hseg.to_string())
-            fh.seek(58)
-            self.write_bytes(fh, " " * (self.tseg.text_start - fh.tell()))
-            self.write_bytes(fh, self.tseg.to_string())
-            self.write_bytes(fh, " " * (self.tseg.data_start - fh.tell()))
-            self.write_bytes(fh, self.dseg.to_string())
+    @classmethod
+    @bufferize(mode="rb+")
+    def write_text_segment(cls, filepath_or_buffer, text_segment):
+        filepath_or_buffer.seek(58)
+        cls.write_bytes(
+            filepath_or_buffer,
+            " " * (text_segment.text_start - filepath_or_buffer.tell()),
+        )
+        cls.write_bytes(filepath_or_buffer, text_segment.to_string())
+        cls.write_bytes(
+            filepath_or_buffer,
+            " " * (text_segment.data_start - filepath_or_buffer.tell()),
+        )
+
+    @classmethod
+    def update_channels(cls, filepath_or_buffer, mappings, channel_type):
+        tseg = cls.read_text_segment(filepath_or_buffer)
+        {"short": tseg.update_pns, "long": tseg.update_pnn}[channel_type](mappings)
+        cls.write_text_segment(filepath_or_buffer, tseg)
+
+    @bufferize(mode="wb")
+    def export(self, filepath_or_buffer):
+        self.write_bytes(filepath_or_buffer, self.hseg.to_string())
+        self.write_text_segment(filepath_or_buffer, self.tseg)
+        self.write_bytes(filepath_or_buffer, self.dseg.to_string())
 
     @property
     def count(self):
