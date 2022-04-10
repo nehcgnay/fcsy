@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 from moto import mock_s3
 from fcsy.fcs import Fcs
-from fcsy.parser import create_open_func, S3Parser
+from fcsy.parser import create_open_func, S3Parser, read_path
 from fcsy import DataFrame
 
 
@@ -54,9 +54,7 @@ class TestWithS3:
 
             self.s3.upload_file(filename, self.bucket_name, "test.fcs")
 
-            parse_func = create_open_func(
-                S3Parser, bucket=self.bucket_name, region_name="us-east-1"
-            )
+            parse_func = create_open_func(S3Parser, bucket=self.bucket_name)
 
             with parse_func("test.fcs") as fp:
                 seg = Fcs.read_text_segment(fp)
@@ -74,9 +72,7 @@ class TestWithS3:
             df.to_fcs(filename)
 
             self.s3.upload_file(filename, self.bucket_name, "test.fcs")
-            parse_func = create_open_func(
-                S3Parser, bucket=self.bucket_name, region_name="us-east-1"
-            )
+            parse_func = create_open_func(S3Parser, bucket=self.bucket_name)
 
             with parse_func("test.fcs") as fp:
                 fcs = Fcs.from_file(fp)
@@ -84,3 +80,14 @@ class TestWithS3:
                 assert fcs.long_channels == self.long_channels
                 assert fcs.count == len(self.data)
                 assert np.array_equal(fcs.values, self.data)
+
+
+def test_read_path():
+    assert read_path("s3://test-bucket/abc/testfile.fcs") == {
+        "mode": "s3",
+        "contents": {"bucket": "test-bucket", "key": "abc/testfile.fcs"},
+    }
+    assert read_path("test_dir/file1.fcs") == {
+        "mode": "local",
+        "contents": {"path": "test_dir/file1.fcs"},
+    }

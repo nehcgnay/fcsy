@@ -148,9 +148,6 @@ class TestFCS:
                 self.data.max(axis=0),
                 text_start=text_start,
             )
-            header = HeaderSegment(
-                text_start, fseg.text_end, fseg.data_start, fseg.data_end
-            )
             fcs = Fcs(self.data, self.long_channels, self.channels)
             fcs.export(filename)
 

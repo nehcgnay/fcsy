@@ -4,7 +4,7 @@ import pandas as pd
 import warnings
 from typing import Union
 from .fcs import Fcs
-from ._typing import ReadFcsBuffer
+from ._typing import ReadFcsBuffer, WriteFcsBuffer, UpdateFcsBuffer
 
 
 __all__ = [
@@ -50,12 +50,15 @@ class DataFrame(pd.DataFrame):
     def _constructor(self):
         return DataFrame
 
-    def to_fcs(self, path: str):
+    def to_fcs(self, filepath_or_buffer: Union[str, WriteFcsBuffer]):
 
         """
         write fcs
 
-        :param path: path to the fcs
+        :param filepath_or_buffer: str or file-like object
+            String, or file-like object implementing a ``write()`` function.
+            The string could be a s3 URL with the format:
+            ``s3://{bucket}/{key}``.
         :type path: str
         """
 
@@ -66,7 +69,7 @@ class DataFrame(pd.DataFrame):
         else:
             short_channels = self.columns
 
-        Fcs(self.values, short_channels, long_channels).export(path)
+        Fcs(self.values, short_channels, long_channels).export(filepath_or_buffer)
 
     @classmethod
     def from_fcs(
@@ -106,15 +109,13 @@ def read_channels(
     """
     Read the fcs channels (without data)
 
-    :param filepath_or_buffer: str or file-like object
-            String, or file-like object implementing a ``read()`` function.
+    :param filepath_or_buffer: String, or file-like object implementing a ``read()`` function.
             The string could be a s3 URL with the format:
             ``s3://{bucket}/{key}``.
-    :type path: str
+    :type filepath_or_buffer: str or file-like object
     :param channel_type: {"short", "long", "multi"}, defaults to "short".
         "short" and "long" refer to short ($PnN) and long ($PnS) name of parameter n, respectively.
         See FCS3.1 data standard for detailed explanation.
-
     :type channel_type: str, optional
     :return: list of the channels
     :rtype: Union[list, pd.MultiIndex]
@@ -132,10 +133,33 @@ def read_channels(
     return maps[channel_type]
 
 
-def rename_channels(filepath_or_buffer: str, channels: dict, channel_type: str) -> None:
-    tseg = Fcs.read_text_segment(filepath_or_buffer)
-    {"short": tseg.update_pnn, "long": tseg.update_pns}[channel_type](channels)
-    Fcs.write_text_segment(filepath_or_buffer, tseg)
+def rename_channels(
+    filepath_or_buffer: Union[str, UpdateFcsBuffer], channels: dict, channel_type: str
+) -> None:
+    """
+    Rename the fcs channels without touching the data.
+
+    :param filepath_or_buffer: String, or file-like object implementing both ``read()`` and ``write()`` functions.
+            S3 URL is not supported.
+    :type filepath_or_buffer: str or file-like object
+    :param channels: A mapper from old names to new names.
+    :type channels: dict
+    :param channel_type: {"short", "long"}.
+        "short" and "long" refer to short ($PnN) and long ($PnS) name of parameter n, respectively.
+        See FCS3.1 data standard for detailed explanation.
+    :type channel_type: str
+    """
+    try:
+        tseg = Fcs.read_text_segment(filepath_or_buffer)
+        {"short": tseg.update_pnn, "long": tseg.update_pns}[channel_type](channels)
+        Fcs.write_text_segment(filepath_or_buffer, tseg)
+    except ValueError as e:
+        if str(e) == "invalid s3 buffer mode":
+            raise ValueError(
+                "S3 url is not supported. Rename the channels locally and re-upload."
+            )
+        else:
+            raise e
 
 
 def read_events_num(filepath_or_buffer: Union[str, ReadFcsBuffer]) -> int:
