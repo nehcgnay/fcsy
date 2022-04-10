@@ -1,8 +1,9 @@
+import re
 from io import BytesIO
 from abc import abstractmethod, ABC
-import re
 from typing import Type
 from contextlib import contextmanager
+from functools import update_wrapper, partial
 from ._typing import ReadFcsBuffer as ReadFcsBufferType
 from ._typing import WriteFcsBuffer as WriteFcsBufferType
 from typing import Union
@@ -45,7 +46,7 @@ class WriteFcsBuffer(ABC):
         pass
 
 
-class S3Parser(ReadFcsBuffer):
+class S3ReadBuffer(ReadFcsBuffer):
     def __init__(self, path, bucket):
         if boto3 is None:
             raise ImportError(
@@ -122,6 +123,48 @@ def create_open_func(
             yield obj
         finally:
             obj.close()
-            pass
 
     return func
+
+
+class Bufferize:
+    def __init__(self, func, mode="rb") -> None:
+        update_wrapper(self, func)
+        self.func = func
+        self.mode = mode
+
+    def __get__(self, obj, objtype):
+        return partial(self.__call__, obj)
+
+    def __call__(self, obj, filepath_or_buffer, *args, **kwargs):
+        if type(filepath_or_buffer) is str:
+            path = read_path(filepath_or_buffer)
+            if path["mode"] == "s3":
+                if self.mode == "rb":
+                    buffer_class = S3ReadBuffer
+                elif self.mode == "wb":
+                    buffer_class = S3WriteBuffer
+                else:
+                    raise ValueError("invalid s3 buffer mode")
+
+                open_func = create_open_func(
+                    buffer_class, bucket=path["contents"]["bucket"]
+                )
+                with open_func(path["contents"]["key"], self.mode) as fp:
+                    return self.func(obj, fp, *args, **kwargs)
+            else:
+                with open(filepath_or_buffer, self.mode) as fp:
+                    return self.func(obj, fp, *args, **kwargs)
+        else:
+            return self.func(obj, filepath_or_buffer, *args, **kwargs)
+
+
+def bufferize(func=None, mode="rb"):
+    if func:
+        return Bufferize(func)
+    else:
+
+        def wrapper(func):
+            return Bufferize(func, mode=mode)
+
+        return wrapper

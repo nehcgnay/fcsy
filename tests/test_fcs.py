@@ -137,28 +137,23 @@ class TestFCS:
                 )
                 assert np.array_equal(dseg.values, self.data)
 
-    def test_update_channels(self):
+    def test_write_text_segment(self):
         with TmpDir() as dir_:
             filename = os.path.join(dir_, "export.fcs")
-            text_start = 256
-            fseg = TextSegment(
-                self.data.shape[0],
-                self.long_channels,
-                self.channels,
-                self.data.max(axis=0),
-                text_start=text_start,
-            )
             fcs = Fcs(self.data, self.long_channels, self.channels)
             fcs.export(filename)
 
-            Fcs.update_channels(filename, {"a": "aa"}, "short")
+            fseg = TextSegment(
+                self.data.shape[0],
+                self.long_channels,
+                ["w", "x", "y", "z"],
+                self.data.max(axis=0),
+                text_start=256,
+            )
 
+            Fcs.write_text_segment(filename, fseg)
             tseg = Fcs.read_text_segment(filename)
-
-            # # tseg.update_pns({"a": "aa"})
-            assert tseg.pns == ["aa", "b", "c", "d"]
-            # with open(filename, 'rb') as fp:
-            #     print(fp.readlines())
+            assert tseg.pns == ["w", "x", "y", "z"]
 
 
 class TestTextSegment:

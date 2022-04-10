@@ -1,7 +1,7 @@
 from io import BytesIO, StringIO
 import struct
 import numpy as np
-from .helper import bufferize
+from .buffer import bufferize
 
 __all__ = ["HeaderSegment", "DataSegment", "TextSegment", "Fcs"]
 
@@ -411,12 +411,6 @@ class Fcs:
             filepath_or_buffer,
             " " * (text_segment.data_start - filepath_or_buffer.tell()),
         )
-
-    @classmethod
-    def update_channels(cls, filepath_or_buffer, mappings, channel_type):
-        tseg = cls.read_text_segment(filepath_or_buffer)
-        {"short": tseg.update_pns, "long": tseg.update_pnn}[channel_type](mappings)
-        cls.write_text_segment(filepath_or_buffer, tseg)
 
     @bufferize(mode="wb")
     def export(self, filepath_or_buffer):

@@ -1,5 +1,10 @@
 from io import BufferedRandom
-from typing import Protocol, Any
+from typing import Any
+
+try:
+    from typing import Protocol
+except ImportError:
+    from typing_extensions import Protocol
 
 
 class ReadFcsBuffer(Protocol):
