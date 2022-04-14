@@ -382,6 +382,12 @@ class Fcs:
 
     @classmethod
     @bufferize
+    def read_header_segment(cls, filepath_or_buffer):
+        filepath_or_buffer.seek(0)
+        return HeaderSegment.from_string(filepath_or_buffer.read(58))
+
+    @classmethod
+    @bufferize
     def read_text_segment(cls, filepath_or_buffer):
         header = HeaderSegment.from_string(filepath_or_buffer.read(58))
         filepath_or_buffer.seek(header.text_start)
@@ -411,6 +417,12 @@ class Fcs:
             filepath_or_buffer,
             " " * (text_segment.data_start - filepath_or_buffer.tell()),
         )
+
+    @classmethod
+    @bufferize(mode="rb+")
+    def write_header_segment(cls, filepath_or_buffer, header_segment):
+        filepath_or_buffer.seek(0)
+        cls.write_bytes(filepath_or_buffer, header_segment.to_string())
 
     @bufferize(mode="wb")
     def export(self, filepath_or_buffer):

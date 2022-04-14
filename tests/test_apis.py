@@ -123,6 +123,21 @@ class TestDataFrame:
             long_channels = read_channels(filename, "long")
             assert long_channels == list("ABCD")
 
+            data = [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]
+            columns = pd.MultiIndex.from_tuples(
+                list(zip("abc", "ABC")), names=["short", "long"]
+            )
+            df = DataFrame(data, columns=columns)
+            filename = os.path.join(dir_, self.name)
+            df.to_fcs(filename)
+            rename_channels(
+                filename, {"a": "a_1", "b": "b_1", "c": "c_1"}, channel_type="short"
+            )
+            short_channels = read_channels(filename, "short")
+            long_channels = read_channels(filename, "long")
+            assert short_channels == ["a_1", "b_1", "c_1"]
+            assert long_channels == list("ABC")
+
 
 class TestWithBuffer:
     def setup_method(self):
@@ -199,17 +214,13 @@ class TestWithBuffer:
             df = DataFrame(self.data, columns=cols)
             df.to_fcs(filename)
 
-            with open(filename, 'rb+') as fp:
+            with open(filename, "rb+") as fp:
                 rename_channels(
                     fp, dict(zip(self.short_channels, list("wxyz"))), "short"
                 )
-        
-            with open(filename, 'rb+') as fp:        
-                rename_channels(
-                    fp, dict(zip(self.long_channels, list("WXYZ"))), "long"
-                )
+
+            with open(filename, "rb+") as fp:
+                rename_channels(fp, dict(zip(self.long_channels, list("WXYZ"))), "long")
 
             assert read_channels(filename, "short") == list("wxyz")
             assert read_channels(filename, "long") == list("WXYZ")
-
-

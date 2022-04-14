@@ -15,6 +15,7 @@ __all__ = [
     "read_fcs_names",
     "read_channels",
     "read_events_num",
+    "rename_channels"
 ]
 
 
@@ -55,11 +56,11 @@ class DataFrame(pd.DataFrame):
         """
         write fcs
 
-        :param filepath_or_buffer: str or file-like object
+        :param filepath_or_buffer: 
             String, or file-like object implementing a ``write()`` function.
             The string could be a s3 URL with the format:
             ``s3://{bucket}/{key}``.
-        :type path: str
+        :type param filepath_or_buffer: str or file-like object
         """
 
         long_channels = None
@@ -78,11 +79,11 @@ class DataFrame(pd.DataFrame):
         """
         Read dataframe from fcs
 
-        :param filepath_or_buffer: str or file-like object
+        :param filepath_or_buffer: str or file-like object.
             String, or file-like object implementing a ``read()`` function.
             The string could be a s3 URL with the format:
             ``s3://{bucket}/{key}``.
-        :type path: str
+        :type filepath_or_buffer: str or file-like object
         :param channel_type: {"short", "long", "multi"}, defaults to "short".
             "short" and "long" refer to short ($PnN) and long ($PnS) name of parameter n, respectively.
             See FCS3.1 data standard for detailed explanation.
@@ -152,6 +153,12 @@ def rename_channels(
     try:
         tseg = Fcs.read_text_segment(filepath_or_buffer)
         {"short": tseg.update_pnn, "long": tseg.update_pns}[channel_type](channels)
+        hseg = Fcs.read_header_segment(filepath_or_buffer)
+        hseg.text_start = tseg.text_start
+        hseg.text_end = tseg.text_end
+        hseg.data_start = tseg.data_start
+        hseg.data_end = tseg.data_end
+        Fcs.write_header_segment(filepath_or_buffer,hseg)
         Fcs.write_text_segment(filepath_or_buffer, tseg)
     except ValueError as e:
         if str(e) == "invalid s3 buffer mode":
