@@ -27,46 +27,137 @@ Installation
 
     $ pip install fcsy
 
+    
+for working with s3: 
+
+.. code-block:: console
+
+    $ pip install fcsy[s3]
+
 
 Usage
 -----
 
-Read a fcs
+Write and read fcs based on Dataframe
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: python
 
-    from fcsy import DataFrame
+    >>> import pandas as pd
+    >>> from fcsy import DataFrame
 
-    df = DataFrame.from_fcs('sample1.fcs', channel_type='multi')
+    >>> data = [[1.0,2.0,3.0],[4.0,5.0,6.0]]
+    >>> columns = pd.MultiIndex.from_tuples(list(zip('abc', 'ABC')), names=["short", "long"])
+    >>> df = DataFrame(data, columns=columns)
+    >>> df
+    short    a    b    c
+    long     A    B    C
+    0      1.0  2.0  3.0
+    1      4.0  5.0  6.0
+    
+    >>> df.to_fcs('sample1.fcs')
+    >>> df = DataFrame.from_fcs('sample1.fcs', channel_type='multi')
+    >>> df
+    short    a    b    c
+    long     A    B    C
+    0      1.0  2.0  3.0
+    1      4.0  5.0  6.0
+    
+Work with fcs metadata
+~~~~~~~~~~~~~~~~~~~~~~
 
-
-Write a dataframe to fcs
+Read fcs channels
 
 .. code-block:: python
 
-    import numpy as np
-    from fcsy import DataFrame
+    >>> from fcsy import read_channels
 
-    df = DataFrame(np.random.rand(10, 4), columns=list('ABCD'))
-    df.to_fcs('sample1.fcs')
+    >>> read_channels('sample1.fcs', channel_type='multi')
+    MultiIndex([('a', 'A'),
+                ('b', 'B'),
+                ('c', 'C')],
+               names=['short', 'long'])
 
-
-Read fcs channels without data
+Rename channels
 
 .. code-block:: python
 
-    from fcsy import read_channels
+    >>> from fcsy import rename_channels, read_channels
 
-    read_channels('sample1.fcs', channel_type='multi')
+    >>> rename_channels('sample1.fcs', {'a': 'a_1', 'b': 'b_1'}, channel_type='short')
+    >>> read_channels('sample1.fcs', channel_type='multi')
+    MultiIndex([('a_1', 'A'),
+                ('b_1', 'B'),
+                (  'c', 'C')],
+               names=['short', 'long'])
+    
 
+    >>> rename_channels('sample1.fcs', {'A': 'A_1', 'C': 'C_1'}, channel_type='long')
+    >>> read_channels('sample1.fcs', channel_type='multi')
+    MultiIndex([('a_1', 'A_1'),
+                ('b_1',   'B'),
+                (  'c', 'C_1')],
+               names=['short', 'long'])
+    
+Read events number
+
+.. code-block:: python
+
+    >>> from fcsy import read_events_num
+
+    >>> read_events_num('sample1.fcs')
+    2
+
+Work with files on aws s3
+~~~~~~~~~~~~~~~~~~~~~~~~~
+``Dataframe`` io, ``read_channels`` and ``read_events_num`` support 
+s3 url with the format: ``s3://{bucket}/{key}``.
+``rename_channles`` doesn't accept s3 url since file editing is not supported on s3.
+Please rename the channels locally and re-upload for such functionality.
+
+.. testsetup:: *
+    
+    >>> import boto3
+    >>> from moto import mock_s3
+    >>> mock = mock_s3()
+    >>> mock.start()
+    >>> s3 = boto3.client("s3", region_name="us-east-1")
+    >>> _ = s3.create_bucket(Bucket='sample-bucket')
+
+Write and read
+
+.. code-block:: python
+
+    >>> df.to_fcs('s3://sample-bucket/sample.fcs')
+    >>> df.from_fcs('s3://sample-bucket/sample.fcs', channel_type='multi')
+    short    a    b    c
+    long     A    B    C
+    0      1.0  2.0  3.0
+    1      4.0  5.0  6.0
+
+Read channels
+
+.. code-block:: python
+
+    >>> read_channels('s3://sample-bucket/sample.fcs', channel_type='multi')
+    MultiIndex([('a', 'A'),
+                ('b', 'B'),
+                ('c', 'C')],
+               names=['short', 'long'])
 
 Read events number
 
 .. code-block:: python
 
-    from fcsy import read_events_num
+    >>> read_events_num('s3://sample-bucket/sample.fcs')
+    2
 
-    read_events_num('sample1.fcs')
+.. testsetup:: *
+
+    >>> mock.stop()
+
+
+
 
 Documentation
 -------------

@@ -33,7 +33,7 @@ import fcsy
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ["sphinx.ext.autodoc", "sphinx.ext.viewcode"]
+extensions = ["sphinx.ext.autodoc", "sphinx.ext.viewcode", "sphinx.ext.doctest"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -48,9 +48,9 @@ source_suffix = ".rst"
 master_doc = "index"
 
 # General information about the project.
-project = u"fcsy"
-copyright = u"2018, yc"
-author = u"yc"
+project = "fcsy"
+copyright = "2018, yc"
+author = "yc"
 
 # The version info for the project you're documenting, acts as replacement
 # for |version| and |release|, also used in various other places throughout
@@ -126,7 +126,7 @@ latex_elements = {
 # (source start file, target name, title, author, documentclass
 # [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, "fcsy.tex", u"fcsy Documentation", u"yc", "manual"),
+    (master_doc, "fcsy.tex", "fcsy Documentation", "yc", "manual"),
 ]
 
 
@@ -134,7 +134,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [(master_doc, "fcsy", u"fcsy Documentation", [author], 1)]
+man_pages = [(master_doc, "fcsy", "fcsy Documentation", [author], 1)]
 
 
 # -- Options for Texinfo output ----------------------------------------
@@ -146,7 +146,7 @@ texinfo_documents = [
     (
         master_doc,
         "fcsy",
-        u"fcsy Documentation",
+        "fcsy Documentation",
         author,
         "fcsy",
         "One line description of project.",

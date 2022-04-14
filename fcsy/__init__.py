@@ -1,4 +1,4 @@
-__version__ = "0.9.0"
+__version__ = "0.10.0"
 
 import pandas as pd
 import warnings
@@ -15,7 +15,7 @@ __all__ = [
     "read_fcs_names",
     "read_channels",
     "read_events_num",
-    "rename_channels"
+    "rename_channels",
 ]
 
 
@@ -56,9 +56,9 @@ class DataFrame(pd.DataFrame):
         """
         write fcs
 
-        :param filepath_or_buffer: 
+        :param filepath_or_buffer:
             String, or file-like object implementing a ``write()`` function.
-            The string could be a s3 URL with the format:
+            The string could be a s3 url with the format:
             ``s3://{bucket}/{key}``.
         :type param filepath_or_buffer: str or file-like object
         """
@@ -81,7 +81,7 @@ class DataFrame(pd.DataFrame):
 
         :param filepath_or_buffer: str or file-like object.
             String, or file-like object implementing a ``read()`` function.
-            The string could be a s3 URL with the format:
+            The string could be a s3 url with the format:
             ``s3://{bucket}/{key}``.
         :type filepath_or_buffer: str or file-like object
         :param channel_type: {"short", "long", "multi"}, defaults to "short".
@@ -111,7 +111,7 @@ def read_channels(
     Read the fcs channels (without data)
 
     :param filepath_or_buffer: String, or file-like object implementing a ``read()`` function.
-            The string could be a s3 URL with the format:
+            The string could be a s3 url with the format:
             ``s3://{bucket}/{key}``.
     :type filepath_or_buffer: str or file-like object
     :param channel_type: {"short", "long", "multi"}, defaults to "short".
@@ -141,7 +141,7 @@ def rename_channels(
     Rename the fcs channels without touching the data.
 
     :param filepath_or_buffer: String, or file-like object implementing both ``read()`` and ``write()`` functions.
-            S3 URL is not supported.
+            S3 url is not supported.
     :type filepath_or_buffer: str or file-like object
     :param channels: A mapper from old names to new names.
     :type channels: dict
@@ -158,7 +158,7 @@ def rename_channels(
         hseg.text_end = tseg.text_end
         hseg.data_start = tseg.data_start
         hseg.data_end = tseg.data_end
-        Fcs.write_header_segment(filepath_or_buffer,hseg)
+        Fcs.write_header_segment(filepath_or_buffer, hseg)
         Fcs.write_text_segment(filepath_or_buffer, tseg)
     except ValueError as e:
         if str(e) == "invalid s3 buffer mode":
@@ -175,7 +175,7 @@ def read_events_num(filepath_or_buffer: Union[str, ReadFcsBuffer]) -> int:
 
     :param filepath_or_buffer: str or file-like object
             String, or file-like object implementing a ``read()`` function.
-            The string could be a s3 URL with the format:
+            The string could be a s3 url with the format:
             ``s3://{bucket}/{key}``.
     :type path: str
     :return: the events number

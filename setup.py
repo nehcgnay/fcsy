@@ -23,7 +23,7 @@ test_requirements = [
     "pytest",
 ]
 
-extras_require = {"boto3": ["boto3>=1.10.0"]}
+extras_require = {"s3": ["boto3>=1.10.0"]}
 
 setup(
     author="yc",
@@ -38,6 +38,7 @@ setup(
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
     ],
     description="A package for processing FCS files",
     install_requires=requirements,
@@ -52,7 +53,7 @@ setup(
     test_suite="tests",
     tests_require=test_requirements,
     url="https://github.com/nehcgnay/fcsy",
-    version="0.9.0",
+    version="0.10.0",
     zip_safe=False,
     extras_require=extras_require,
 )
