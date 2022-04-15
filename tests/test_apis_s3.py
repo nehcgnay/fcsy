@@ -95,7 +95,7 @@ class TestWithS3:
         assert read_channels(s3_file_path, "long") == self.long_channels
         np.testing.assert_array_equal(read_channels(s3_file_path, "multi"), cols)
 
-    def test_rename_channels(self):
+    def test_rename_channels_alt(self):
         cols = pd.MultiIndex.from_tuples(
             list(zip(self.short_channels, self.long_channels)),
             names=["short", "long"],
@@ -108,7 +108,44 @@ class TestWithS3:
             rename_channels(
                 s3_file_path, dict(zip(self.short_channels, list("abcd"))), "short"
             )
+        assert str(e.value) == "S3 url is only supported when allow_rewrite is set."
+
+        ln = ""
+        for i in range(30):
+            ln = ln + str(i)
+        with pytest.raises(ValueError) as e:
+            rename_channels(s3_file_path, {"c": ln}, "short")
         assert (
             str(e.value)
-            == "S3 url is not supported. Rename the channels locally and re-upload."
+            == "New channel names are too long causing overlap with Data Segment."
         )
+
+    def test_rename_channels(self):
+        cols = pd.MultiIndex.from_tuples(
+            list(zip(self.short_channels, self.long_channels)),
+            names=["short", "long"],
+        )
+        df = DataFrame(self.data, columns=cols)
+        s3_file_path = f"s3://{self.bucket_name}/test.fcs"
+        df.to_fcs(s3_file_path)
+
+        rename_channels(
+            s3_file_path, {"a": "a_1", "d": "d_1"}, "short", allow_rewrite=True
+        )
+
+        dfr = DataFrame.from_fcs(s3_file_path, channel_type="multi")
+
+        np.testing.assert_array_equal(
+            ["a_1", "b", "c", "d_1"],
+            dfr.columns.get_level_values("short").values,
+        )
+        np.testing.assert_array_equal(
+            list("ABCD"),
+            dfr.columns.get_level_values("long").values,
+        )
+
+        ln = ""
+        for i in range(30):
+            ln = ln + str(i)
+        rename_channels(s3_file_path, {"C": ln}, "long", allow_rewrite=True)
+        assert ["A", "B", ln, "D"] == read_channels(s3_file_path, "long")

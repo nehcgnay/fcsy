@@ -1,6 +1,7 @@
 __version__ = "0.10.0"
 
 import pandas as pd
+from copy import deepcopy
 import warnings
 from typing import Union
 from .fcs import Fcs
@@ -54,7 +55,7 @@ class DataFrame(pd.DataFrame):
     def to_fcs(self, filepath_or_buffer: Union[str, WriteFcsBuffer]):
 
         """
-        write fcs
+        write fcs.
 
         :param filepath_or_buffer:
             String, or file-like object implementing a ``write()`` function.
@@ -77,7 +78,7 @@ class DataFrame(pd.DataFrame):
         cls, filepath_or_buffer: Union[str, ReadFcsBuffer], channel_type: str = "short"
     ):
         """
-        Read dataframe from fcs
+        Read dataframe from fcs.
 
         :param filepath_or_buffer: str or file-like object.
             String, or file-like object implementing a ``read()`` function.
@@ -108,7 +109,7 @@ def read_channels(
     filepath_or_buffer: Union[str, ReadFcsBuffer], channel_type: str = "short"
 ) -> Union[list, pd.MultiIndex]:
     """
-    Read the fcs channels (without data)
+    Read fcs channels.
 
     :param filepath_or_buffer: String, or file-like object implementing a ``read()`` function.
             The string could be a s3 url with the format:
@@ -135,10 +136,13 @@ def read_channels(
 
 
 def rename_channels(
-    filepath_or_buffer: Union[str, UpdateFcsBuffer], channels: dict, channel_type: str
+    filepath_or_buffer: Union[str, UpdateFcsBuffer],
+    channels: dict,
+    channel_type: str,
+    allow_rewrite: bool = False,
 ) -> None:
     """
-    Rename the fcs channels without touching the data.
+    Rename fcs channels.
 
     :param filepath_or_buffer: String, or file-like object implementing both ``read()`` and ``write()`` functions.
             S3 url is not supported.
@@ -149,29 +153,48 @@ def rename_channels(
         "short" and "long" refer to short ($PnN) and long ($PnS) name of parameter n, respectively.
         See FCS3.1 data standard for detailed explanation.
     :type channel_type: str
+    :param allow_rewrite: Allow rewriting the whole file if channel only editing is not feasible.
+        The cases are:
+
+        * The new channel names are too long causing Text Segment overlap with Data Segment.
+        * filepath_or_buffer is s3 url.
+    :type allow_rewrite: bool
     """
+    tseg = Fcs.read_text_segment(filepath_or_buffer)
+    tseg_old = deepcopy(tseg)
+    {"short": tseg.update_pnn, "long": tseg.update_pns}[channel_type](channels)
+    hseg = Fcs.read_header_segment(filepath_or_buffer)
+    hseg.text_start = tseg.text_start
+    hseg.text_end = tseg.text_end
     try:
-        tseg = Fcs.read_text_segment(filepath_or_buffer)
-        {"short": tseg.update_pnn, "long": tseg.update_pns}[channel_type](channels)
-        hseg = Fcs.read_header_segment(filepath_or_buffer)
-        hseg.text_start = tseg.text_start
-        hseg.text_end = tseg.text_end
-        hseg.data_start = tseg.data_start
-        hseg.data_end = tseg.data_end
+        if tseg.text_end >= hseg.data_start:
+            if allow_rewrite:
+                dseg = Fcs.read_data_segment(filepath_or_buffer, hseg, tseg_old)
+                Fcs(dseg.values, tseg.pnn, tseg.pns).export(filepath_or_buffer)
+                return
+            else:
+                raise ValueError(
+                    "New channel names are too long causing overlap with Data Segment."
+                )
         Fcs.write_header_segment(filepath_or_buffer, hseg)
         Fcs.write_text_segment(filepath_or_buffer, tseg)
     except ValueError as e:
         if str(e) == "invalid s3 buffer mode":
-            raise ValueError(
-                "S3 url is not supported. Rename the channels locally and re-upload."
-            )
+            if allow_rewrite:
+                dseg = Fcs.read_data_segment(filepath_or_buffer, hseg, tseg_old)
+                Fcs(dseg.values, tseg.pnn, tseg.pns).export(filepath_or_buffer)
+                return
+            else:
+                raise ValueError(
+                    "S3 url is only supported when allow_rewrite is set."
+                )
         else:
             raise e
 
 
 def read_events_num(filepath_or_buffer: Union[str, ReadFcsBuffer]) -> int:
     """
-    Read the fcs events number
+    Read fcs events number.
 
     :param filepath_or_buffer: str or file-like object
             String, or file-like object implementing a ``read()`` function.

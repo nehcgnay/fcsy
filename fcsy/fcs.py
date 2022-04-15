@@ -382,6 +382,20 @@ class Fcs:
 
     @classmethod
     @bufferize
+    def read_data_segment(cls, filepath_or_buffer, hseg, tseg):
+        data_start = hseg.data_start if hseg.data_start != 0 else tseg.data_start
+        data_end = hseg.data_end if hseg.data_end != 0 else tseg.data_end
+        filepath_or_buffer.seek(data_start)
+        return DataSegment.from_string(
+            filepath_or_buffer.read(data_end - data_start + 1),
+            tseg.datatype,
+            len(tseg.pnn),
+            tseg.tot,
+            tseg.endian,
+        )
+
+    @classmethod
+    @bufferize
     def read_header_segment(cls, filepath_or_buffer):
         filepath_or_buffer.seek(0)
         return HeaderSegment.from_string(filepath_or_buffer.read(58))

@@ -2,8 +2,10 @@ import os
 from tempfile import mkdtemp
 from shutil import rmtree
 import numpy as np
+from numpy.testing import assert_almost_equal
 import pandas as pd
 from pandas.testing import assert_frame_equal
+import pytest
 from fcsy import (
     DataFrame,
     read_channels,
@@ -137,6 +139,34 @@ class TestDataFrame:
             long_channels = read_channels(filename, "long")
             assert short_channels == ["a_1", "b_1", "c_1"]
             assert long_channels == list("ABC")
+
+    def test_rename_channels_alt(self):
+        with TmpDir() as dir_:
+            df = DataFrame(
+                self.data,
+                columns=pd.MultiIndex.from_tuples(
+                    zip(self.short_channels, self.long_channels),
+                    names=["short", "long"],
+                ),
+            )
+            filename = os.path.join(dir_, self.name)
+            df.to_fcs(filename)
+
+            ln = ""
+            for i in range(30):
+                ln = ln + str(i)
+
+            with pytest.raises(ValueError) as err:
+                rename_channels(filename, {"a_di": ln}, "short")
+            assert (
+                str(err.value)
+                == "New channel names are too long causing overlap with Data Segment."
+            )
+
+            rename_channels(filename, {"a_di": ln}, "short", allow_rewrite=True)
+            df2 = DataFrame.from_fcs(filename)
+
+            assert_almost_equal(df.values, df2.values)
 
 
 class TestWithBuffer:
