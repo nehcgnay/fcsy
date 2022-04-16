@@ -6,6 +6,7 @@ flake8>=3.5.0
 tox>=3.5.2
 coverage>=4.5.1
 Sphinx>=1.8.1
+sphinx_markdown_builder>=0.5.5
 twine>=1.12.1
 mock>=2.0.0
 

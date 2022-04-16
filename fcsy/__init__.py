@@ -1,4 +1,4 @@
-__version__ = "0.10.0"
+__version__ = "0.10.dev2"
 
 import pandas as pd
 from copy import deepcopy
@@ -154,7 +154,7 @@ def rename_channels(
         See FCS3.1 data standard for detailed explanation.
     :type channel_type: str
     :param allow_rewrite: Allow rewriting the whole file if channel only editing is not feasible.
-        The cases are:
+        It can be one of the following:
 
         * The new channel names are too long causing Text Segment overlap with Data Segment.
         * filepath_or_buffer is s3 url.
