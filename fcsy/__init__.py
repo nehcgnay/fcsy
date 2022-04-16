@@ -154,7 +154,7 @@ def rename_channels(
         See FCS3.1 data standard for detailed explanation.
     :type channel_type: str
     :param allow_rewrite: Allow rewriting the whole file if channel only editing is not feasible.
-        The cases are:
+        It can be one of the following:
 
         * The new channel names are too long causing Text Segment overlap with Data Segment.
         * filepath_or_buffer is s3 url.
@@ -185,9 +185,7 @@ def rename_channels(
                 Fcs(dseg.values, tseg.pnn, tseg.pns).export(filepath_or_buffer)
                 return
             else:
-                raise ValueError(
-                    "S3 url is only supported when allow_rewrite is set."
-                )
+                raise ValueError("S3 url is only supported when allow_rewrite is set.")
         else:
             raise e
 
